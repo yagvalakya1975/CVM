@@ -1,9 +1,17 @@
 #include "lexer/lexer.h"
 #include <iostream>
 
-Lexer::Lexer(std::string source) : source(std::move(source)) {}
+using namespace std;
+    Lexer::Lexer(std::string source) : source(std::move(source)) {
+        keywords["int"] = TokenType::KW_INT;
+        keywords["float"] = TokenType::KW_FLOAT;
+        keywords["string"] = TokenType::KW_STRING;
+        keywords["char"] = TokenType::KW_CHAR;
+        keywords["print"] = TokenType::KW_PRINT;
+        keywords["input"] = TokenType::KW_INPUT;
+    }
 
-std::vector<Token> Lexer::scanTokens() {
+    vector<Token> Lexer::scanTokens() {
     while (!isAtEnd()) {
         // We are at the beginning of the next lexeme.
         start = current;
@@ -39,12 +47,70 @@ void Lexer::scanToken() {
         default:
             if (isDigit(c)) {
                 number();
-            } else {
-                // In a production compiler, we'd throw a proper error here
+            } 
+            else if(isAlpha(c)){
+                identifier();
+            }
+            else {
                 std::cerr << "LexerError: line " << line << ": Unexpected character '" << c << "'\n";
             }
             break;
     }
+}
+
+void Lexer::identifier(){
+    while(isAlphaNumeric(peek())) advance();
+    std::string text= source.substr(start, current-start);
+
+    //checking if the scanned word is a reserved keyword or not
+    TokenType type;
+    auto match = keywords.find(text);
+    if (match != keywords.end()) {
+        type = match->second; // It's a keyword like 'int' or 'print'
+    } else {
+        type = TokenType::IDENTIFIER; // It's a user-defined variable name
+    }
+
+    addToken(type, text);
+
+}
+
+void Lexer::string() {
+    // Consume characters until we hit the closing quote
+    while (peek() != '"' && !isAtEnd()) {
+        if (peek() == '\n') line++; // Handle multi-line strings if they occur
+        advance();
+    }
+
+    if (isAtEnd()) {
+        std::cerr << "Error at line " << line << ": Unterminated string.\n";
+        return;
+    }
+
+    advance(); // Consume the closing '"'
+
+    // Grab the string content, excluding the quotes themselves
+    std::string value = source.substr(start + 1, current - start - 2);
+    addToken(TokenType::STRING_LITERAL, value);
+}
+
+void Lexer::character() {
+    if (isAtEnd() || peek() == '\'') {
+        std::cerr << "Error at line " << line << ": Empty character literal.\n";
+        return;
+    }
+
+    advance(); // Consume the actual character
+
+    if (peek() != '\'') {
+        std::cerr << "Error at line " << line << ": Unterminated character literal.\n";
+        return;
+    }
+
+    advance(); // Consume the closing '\''
+
+    std::string value = source.substr(start + 1, current - start - 2);
+    addToken(TokenType::CHAR_LITERAL, value);
 }
 
 void Lexer::number() {
@@ -89,6 +155,16 @@ bool Lexer::isDigit(char c) {
     return c >= '0' && c <= '9';
 }
 
+bool Lexer::isAlpha(char c) {
+    return (c >= 'a' && c <= 'z') || 
+           (c >= 'A' && c <= 'Z') || 
+            c == '_';
+}
+
+bool Lexer::isAlphaNumeric(char c) {
+    return isAlpha(c) || isDigit(c);
+}
+
 void Lexer::addToken(TokenType type) {
     std::string text = source.substr(start, current - start);
     tokens.push_back(Token(type, text, line));
@@ -97,3 +173,6 @@ void Lexer::addToken(TokenType type) {
 void Lexer::addToken(TokenType type, std::string text) { // particularly used here for number tokens
     tokens.push_back(Token(type, text, line));
 }
+ // namespace std
+
+

@@ -56,18 +56,35 @@ struct Token {
 };
 
 // Quick helper function to print token types as text instead of numbers
-std::string tokenTypeToString(TokenType type) {
+inline std::string tokenTypeToString(TokenType type) {
     switch (type) {
+
         case TokenType::LEFT_PAREN: return "LEFT_PAREN";
         case TokenType::RIGHT_PAREN: return "RIGHT_PAREN";
         case TokenType::PLUS: return "PLUS";
         case TokenType::MINUS: return "MINUS";
         case TokenType::STAR: return "STAR";
         case TokenType::SLASH: return "SLASH";
+        case TokenType::MODULO: return "MODULO";
         case TokenType::SEMICOLON: return "SEMICOLON";
+        
+        case TokenType::KW_INT: return "KW_INT";
+        case TokenType::KW_FLOAT: return "KW_FLOAT";
+        case TokenType::KW_CHAR: return "KW_CHAR";
+        case TokenType::KW_STRING: return "KW_STRING";
+        case TokenType::KW_PRINT: return "KW_PRINT";
+        case TokenType::KW_INPUT: return "KW_INPUT";
+        
+        case TokenType::IDENTIFIER: return "IDENTIFIER";
         case TokenType::INT_LITERAL: return "INT_LITERAL";
         case TokenType::FLOAT_LITERAL: return "FLOAT_LITERAL";
+        case TokenType::STRING_LITERAL: return "STRING_LITERAL";
+        case TokenType::CHAR_LITERAL: return "CHAR_LITERAL";
+        
+        case TokenType::EQUAL: return "EQUAL";
+        
         case TokenType::END_OF_FILE: return "EOF";
+        
         default: return "UNKNOWN";
     }
 }

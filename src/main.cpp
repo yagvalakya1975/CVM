@@ -6,9 +6,6 @@
 #include "lexer/token.h"
 #include "parser/parser.h"
 
-
-
-
 int main(int argc, char ** argv) {
     // Our test source code
     if(argc < 2)
@@ -19,13 +16,8 @@ int main(int argc, char ** argv) {
     std::cout << "Reading from the file : "<< argv[1] << std::endl;
     std::ifstream sourceFileStream(argv[1]);
 
-    std:: stringstream buffer;
-    char temp;
-    while(sourceFileStream.get(temp))
-    {
-        buffer<<temp;
-    }
-
+    std::stringstream buffer;
+    buffer << sourceFileStream.rdbuf(); 
     std::string sourceCode = buffer.str();
     
     std::cout << "Scanning source code: " << sourceCode << "\n\n";
@@ -39,12 +31,12 @@ int main(int argc, char ** argv) {
                   << "' | Line: " << token.line << "\n";
     }
 
-    Parser parser(tokens); 
-    ASTNode* root = parser.parse();
-    if(!root) {
-        std::cerr << "Parsing failed.\n";
-        return 1;
-    }
+    // Parser parser(tokens); 
+    // ASTNode* root = parser.parse();
+    // if(!root) {
+    //     std::cerr << "Parsing failed.\n";
+    //     return 1;
+    // }
 
     return 0;
 }
