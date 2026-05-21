@@ -41,7 +41,7 @@ void Lexer::scanToken() {
                 number();
             } else {
                 // In a production compiler, we'd throw a proper error here
-                std::cerr << "Error at line " << line << ": Unexpected character '" << c << "'\n";
+                std::cerr << "LexerError: line " << line << ": Unexpected character '" << c << "'\n";
             }
             break;
     }
@@ -94,6 +94,6 @@ void Lexer::addToken(TokenType type) {
     tokens.push_back(Token(type, text, line));
 }
 
-void Lexer::addToken(TokenType type, std::string text) {
+void Lexer::addToken(TokenType type, std::string text) { // particularly used here for number tokens
     tokens.push_back(Token(type, text, line));
 }

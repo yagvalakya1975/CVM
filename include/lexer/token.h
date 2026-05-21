@@ -54,3 +54,20 @@ struct Token {
     Token(TokenType type, std::string lexeme, int line)
         : type(type), lexeme(std::move(lexeme)), line(line) {}
 };
+
+// Quick helper function to print token types as text instead of numbers
+std::string tokenTypeToString(TokenType type) {
+    switch (type) {
+        case TokenType::LEFT_PAREN: return "LEFT_PAREN";
+        case TokenType::RIGHT_PAREN: return "RIGHT_PAREN";
+        case TokenType::PLUS: return "PLUS";
+        case TokenType::MINUS: return "MINUS";
+        case TokenType::STAR: return "STAR";
+        case TokenType::SLASH: return "SLASH";
+        case TokenType::SEMICOLON: return "SEMICOLON";
+        case TokenType::INT_LITERAL: return "INT_LITERAL";
+        case TokenType::FLOAT_LITERAL: return "FLOAT_LITERAL";
+        case TokenType::END_OF_FILE: return "EOF";
+        default: return "UNKNOWN";
+    }
+}
