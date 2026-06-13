@@ -31,12 +31,14 @@ int main(int argc, char ** argv) {
                   << "' | Line: " << token.line << "\n";
     }
 
-    // Parser parser(tokens); 
-    // ASTNode* root = parser.parse();
-    // if(!root) {
-    //     std::cerr << "Parsing failed.\n";
-    //     return 1;
-    // }
+    Parser parser(tokens);
+    ASTNode* root = parser.parse();
+    if (!root) {
+        std::cerr << "\nParsing failed.\n";
+        return 1;
+    }
+    std::cout << "\nAST:\n";
+    parser.printAST(root);
 
     return 0;
 }

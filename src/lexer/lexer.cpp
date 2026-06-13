@@ -34,6 +34,9 @@ void Lexer::scanToken() {
         case '/': addToken(TokenType::SLASH); break;
         case '%': addToken(TokenType::MODULO); break;
         case ';': addToken(TokenType::SEMICOLON); break;
+        case '=': addToken(TokenType::EQUAL); break;
+        case '"': check_string(); break;
+        case '\'': check_character(); break;
 
         // Ignore whitespace
         case ' ':
@@ -46,10 +49,10 @@ void Lexer::scanToken() {
 
         default:
             if (isDigit(c)) {
-                number();
+                check_number();
             } 
             else if(isAlpha(c)){
-                identifier();
+                check_identifier();
             }
             else {
                 std::cerr << "LexerError: line " << line << ": Unexpected character '" << c << "'\n";
@@ -58,7 +61,7 @@ void Lexer::scanToken() {
     }
 }
 
-void Lexer::identifier(){
+void Lexer::check_identifier(){
     while(isAlphaNumeric(peek())) advance();
     std::string text= source.substr(start, current-start);
 
@@ -75,14 +78,13 @@ void Lexer::identifier(){
 
 }
 
-void Lexer::string() {
+void Lexer::check_string() {
     // Consume characters until we hit the closing quote
-    while (peek() != '"' && !isAtEnd()) {
-        if (peek() == '\n') line++; // Handle multi-line strings if they occur
+    while (peek() != '"' && !isAtEnd() && peek() != '\n') {
         advance();
     }
 
-    if (isAtEnd()) {
+    if (isAtEnd() || peek() == '\n') {
         std::cerr << "Error at line " << line << ": Unterminated string.\n";
         return;
     }
@@ -94,7 +96,7 @@ void Lexer::string() {
     addToken(TokenType::STRING_LITERAL, value);
 }
 
-void Lexer::character() {
+void Lexer::check_character() {
     if (isAtEnd() || peek() == '\'') {
         std::cerr << "Error at line " << line << ": Empty character literal.\n";
         return;
@@ -113,7 +115,7 @@ void Lexer::character() {
     addToken(TokenType::CHAR_LITERAL, value);
 }
 
-void Lexer::number() {
+void Lexer::check_number() {
     bool isFloat = false;
 
     // Consume all standard digits
@@ -174,5 +176,3 @@ void Lexer::addToken(TokenType type, std::string text) { // particularly used he
     tokens.push_back(Token(type, text, line));
 }
  // namespace std
-
-

@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
-#include<unordered_map>
+#include <unordered_map>
 #include "lexer/token.h"
 
 using namespace std;
@@ -26,10 +26,10 @@ private:
     void addToken(TokenType type);
     void addToken(TokenType type, string text);
     
-    void number();
-    void string();
-    void character();
-    void identifier();
+    void check_number();
+    void check_string();
+    void check_character();
+    void check_identifier();
     
     bool isAtEnd();
     char advance();
