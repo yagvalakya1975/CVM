@@ -9,7 +9,12 @@ using namespace std;
         keywords["char"] = TokenType::KW_CHAR;
         keywords["print"] = TokenType::KW_PRINT;
         keywords["input"] = TokenType::KW_INPUT;
+        keywords["if"] = TokenType::KW_IF;
+        keywords["else"] = TokenType::KW_ELSE;
+        keywords["while"] = TokenType::KW_WHILE;
     }
+
+    
 
     vector<Token> Lexer::scanTokens() {
     while (!isAtEnd()) {
@@ -21,6 +26,8 @@ using namespace std;
     tokens.push_back(Token(TokenType::END_OF_FILE, "", line));
     return tokens;
 }
+
+
 
 void Lexer::scanToken() {
     char c = advance();
@@ -34,9 +41,24 @@ void Lexer::scanToken() {
         case '/': addToken(TokenType::SLASH); break;
         case '%': addToken(TokenType::MODULO); break;
         case ';': addToken(TokenType::SEMICOLON); break;
-        case '=': addToken(TokenType::EQUAL); break;
+        // case '=': addToken(TokenType::EQUAL); break;
         case '"': check_string(); break;
         case '\'': check_character(); break;
+        case '{': addToken(TokenType::LEFT_BRACE); break;
+        case '}': addToken(TokenType::RIGHT_BRACE); break;
+        case '=': 
+            addToken(match('=') ? TokenType::EQUAL_EQUAL : TokenType::EQUAL); 
+            break;
+        case '!': 
+            addToken(match('=') ? TokenType::BANG_EQUAL : TokenType::BANG); 
+            break;
+        case '<': 
+            addToken(match('=') ? TokenType::LESS_EQUAL : TokenType::LESS); 
+            break;
+        case '>': 
+            addToken(match('=') ? TokenType::GREATER_EQUAL : TokenType::GREATER); 
+            break;
+
 
         // Ignore whitespace
         case ' ':
@@ -146,6 +168,13 @@ char Lexer::advance() {
 char Lexer::peek() {
     if (isAtEnd()) return '\0';
     return source[current];
+}
+
+bool Lexer::match(char expected) {
+    if (isAtEnd()) return false;
+    if (source[current] != expected) return false;
+    current++; // Consume the character since it matched!
+    return true;
 }
 
 char Lexer::peekNext() {

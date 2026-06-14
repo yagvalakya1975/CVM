@@ -36,7 +36,11 @@ private:
     char peek();
     char peekNext();
 
+    bool match(char expected);
+
     bool isDigit(char c);
     bool isAlpha(char c);
     bool isAlphaNumeric(char c);
+
+    
 };

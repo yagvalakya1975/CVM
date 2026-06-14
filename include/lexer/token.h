@@ -82,6 +82,18 @@ inline std::string tokenTypeToString(TokenType type) {
         case TokenType::CHAR_LITERAL: return "CHAR_LITERAL";
         
         case TokenType::EQUAL: return "EQUAL";
+        case TokenType::LEFT_BRACE: return "LEFT_BRACE";
+        case TokenType::RIGHT_BRACE: return "RIGHT_BRACE";
+        case TokenType::BANG: return "BANG";
+        case TokenType::BANG_EQUAL: return "BANG_EQUAL";
+        case TokenType::EQUAL_EQUAL: return "EQUAL_EQUAL";
+        case TokenType::GREATER: return "GREATER";
+        case TokenType::GREATER_EQUAL: return "GREATER_EQUAL";
+        case TokenType::LESS: return "LESS";
+        case TokenType::LESS_EQUAL: return "LESS_EQUAL";
+        case TokenType::KW_IF: return "KW_IF";
+        case TokenType::KW_ELSE: return "KW_ELSE";
+        case TokenType::KW_WHILE: return "KW_WHILE";
         
         case TokenType::END_OF_FILE: return "EOF";
         

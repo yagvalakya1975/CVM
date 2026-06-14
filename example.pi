@@ -2,3 +2,5 @@
 int my_var1 = 10;
 string greeting = input("Enter name"); 
 print(greeting);
+
+if (x >= 10) { print(x); }
