@@ -8,6 +8,9 @@ enum class NODE_TYPE {
     DECL_STMT,          // TYPE id = expr ;          (declaration + init)
     PRINT_STMT,         // print ( expr ) ;
     EXPR_STMT,          // bare expression used as a statement
+    BLOCK_STMT,         // for { }
+    IF_STMT,
+    WHILE_STMT,
     BINARY_EXPR,        // left OP right    (+ - * / %)
     UNARY_EXPR,         // OP operand       (currently only unary minus)
     ASSIGN_EXPR,        // id = expr        (future: assignment statement)
@@ -31,6 +34,7 @@ struct ASTNode {
     ASTNode* left  = nullptr;   // lhs of binary expr, or single child
     ASTNode* right = nullptr;   // rhs of binary expr
     ASTNode*& child = left;
+    ASTNode* alternate= nullptr;      //used for els branch
     std::vector<ASTNode*> SUB_STATEMENTS;
 
     // ── constructors ──────────────────────────────────────────────
@@ -38,6 +42,7 @@ struct ASTNode {
     explicit ASTNode(NODE_TYPE t) : type(t) {}
     ASTNode(NODE_TYPE t, std::string v) : type(t), value(std::move(v)) {}
 };
+
 class Parser {
 public:
     Parser(std::vector<Token>& tokens);
@@ -56,6 +61,14 @@ private:
     ASTNode* parseDeclStmt();           // TYPE id = expr ;
     ASTNode* parsePrintStmt();          // print ( expr ) ;
     ASTNode* parseExprStmt();           // expr ;
+    ASTNode* parseBlock();
+    ASTNode* parseIfStmt();
+    ASTNode* parseWhileStmt();
+
+    ASTNode* parseCondition();          // Handles ==, !=
+    ASTNode* parseRelational();         // Handles <, >, <=, >=
+    ASTNode* parseEquality();
+
     ASTNode* parseExpression();
     ASTNode* parseExpressionTail(ASTNode* left);
     ASTNode* parseTerm();
@@ -70,6 +83,9 @@ static std::string nodeTypeName(NODE_TYPE t) {
         case NODE_TYPE::DECL_STMT:      return "DECL_STMT";
         case NODE_TYPE::PRINT_STMT:     return "PRINT_STMT";
         case NODE_TYPE::EXPR_STMT:      return "EXPR_STMT";
+        case NODE_TYPE::BLOCK_STMT:     return "BLOCK_STMT";
+        case NODE_TYPE::IF_STMT:        return "IF_STMT";
+        case NODE_TYPE::WHILE_STMT:     return "WHILE_STMT";
         case NODE_TYPE::BINARY_EXPR:    return "BINARY_EXPR";
         case NODE_TYPE::UNARY_EXPR:     return "UNARY_EXPR";
         case NODE_TYPE::ASSIGN_EXPR:    return "ASSIGN_EXPR";

@@ -65,6 +65,15 @@ bool Parser::isTypeKeyword() const {
 }
 
 ASTNode* Parser::parseStatement() {
+    if (check(TokenType::LEFT_BRACE))
+        return parseBlock();
+
+    if (check(TokenType::KW_IF))
+        return parseIfStmt();
+
+    if (check(TokenType::KW_WHILE))
+        return parseWhileStmt();
+
     if (isTypeKeyword())
         return parseDeclStmt();
         
@@ -96,7 +105,7 @@ ASTNode* Parser::parseDeclStmt() { //  declStmt → TYPE IDENTIFIER = expression
 
     if (!proceed(TokenType::EQUAL)) return nullptr;
  
-    ASTNode* initExpr = parseExpression();
+    ASTNode* initExpr = parseCondition();
     if (!initExpr) return nullptr;
 
     if (!proceed(TokenType::SEMICOLON)) return nullptr;
@@ -108,12 +117,121 @@ ASTNode* Parser::parseDeclStmt() { //  declStmt → TYPE IDENTIFIER = expression
     return node;
 }
 
+ASTNode* Parser::parseBlock() {
+    proceed(TokenType::LEFT_BRACE);
+    ASTNode* blockNode = new ASTNode(NODE_TYPE::BLOCK_STMT);
+    
+    // Keep parsing statements until we hit the closing brace
+    while (!check(TokenType::RIGHT_BRACE) && !check(TokenType::END_OF_FILE)) {
+        ASTNode* stmt = parseStatement();
+        if (stmt) blockNode->SUB_STATEMENTS.push_back(stmt);
+    }
+    
+    proceed(TokenType::RIGHT_BRACE);
+    return blockNode;
+}
+
+ASTNode* Parser::parseIfStmt() {
+    proceed(TokenType::KW_IF);
+    proceed(TokenType::LEFT_PAREN);
+    ASTNode* condition = parseCondition();
+    proceed(TokenType::RIGHT_PAREN);
+
+    ASTNode* trueBranch = parseStatement();
+    ASTNode* falseBranch = nullptr;
+
+    // Check if there is an 'else' attached
+    if (check(TokenType::KW_ELSE)) {
+        proceed(TokenType::KW_ELSE);
+        falseBranch = parseStatement();
+    }
+
+    ASTNode* node = new ASTNode(NODE_TYPE::IF_STMT);
+    node->left = condition;      // The condition to evaluate
+    node->right = trueBranch;    // What to do if true
+    node->alternate = falseBranch; // What to do if false (can be nullptr)
+    return node;
+}
+
+ASTNode* Parser::parseWhileStmt() {
+
+    proceed(TokenType::KW_WHILE);
+    proceed(TokenType::LEFT_PAREN);
+
+    ASTNode* condition = parseCondition();
+    if (!condition) return nullptr;
+    proceed(TokenType::RIGHT_PAREN);
+
+    ASTNode* body = parseStatement();
+
+    ASTNode* node = new ASTNode(NODE_TYPE::WHILE_STMT);
+    if (!body) return nullptr;      //stop if body has syntax error
+
+    node->left = condition; //  loop condition
+    node->right = body;     //  block to loop over
+    return node;
+}
+
+ASTNode* Parser::parseEquality() {
+    ASTNode* left = parseRelational();
+
+    while (check(TokenType::EQUAL_EQUAL) || check(TokenType::BANG_EQUAL)) {
+        std::string op = current.lexeme;
+        proceed(current.type);
+        ASTNode* right = parseRelational();
+        
+        ASTNode* binary = new ASTNode(NODE_TYPE::BINARY_EXPR);
+        binary->op = op;
+        binary->left = left;
+        binary->right = right;
+        left = binary;
+    }
+    return left;
+}
+
+//  condition → relational ( ( "==" | "!=" ) relational )*
+ASTNode* Parser::parseCondition() {
+    ASTNode* left = parseRelational();
+
+    while (check(TokenType::EQUAL_EQUAL) || check(TokenType::BANG_EQUAL)) {
+        std::string op = current.lexeme;
+        proceed(current.type);
+        ASTNode* right = parseRelational();
+        
+        ASTNode* binary = new ASTNode(NODE_TYPE::BINARY_EXPR);
+        binary->op = op;
+        binary->left = left;
+        binary->right = right;
+        left = binary;
+    }
+    return left;
+}
+
+//  relational → expression ( ( "<" | ">" | "<=" | ">=" ) expression )*
+ASTNode* Parser::parseRelational() {
+    ASTNode* left = parseExpression(); // Calls your existing math function!
+
+    while (check(TokenType::LESS) || check(TokenType::LESS_EQUAL) ||
+           check(TokenType::GREATER) || check(TokenType::GREATER_EQUAL)) {
+        std::string op = current.lexeme;
+        proceed(current.type);
+        ASTNode* right = parseExpression();
+        
+        ASTNode* binary = new ASTNode(NODE_TYPE::BINARY_EXPR);
+        binary->op = op;
+        binary->left = left;
+        binary->right = right;
+        left = binary;
+    }
+    return left;
+}
+
 //  printStmt → print ( expression ) ;
 ASTNode* Parser::parsePrintStmt() {
     proceed(TokenType::KW_PRINT);
     if (!proceed(TokenType::LEFT_PAREN))  return nullptr;
  
-    ASTNode* arg = parseExpression();
+    ASTNode* arg = parseCondition();
     if (!arg) return nullptr;
  
     if (!proceed(TokenType::RIGHT_PAREN)) return nullptr;
@@ -125,7 +243,7 @@ ASTNode* Parser::parsePrintStmt() {
 }
 
 ASTNode* Parser::parseExprStmt() {
-    ASTNode* expr = parseExpression();
+    ASTNode* expr = parseCondition();
     if (!expr) return nullptr;
     if (!proceed(TokenType::SEMICOLON)) return nullptr;
  
@@ -140,6 +258,7 @@ ASTNode* Parser::parseExpression() {
     ASTNode* left = parseTerm();
     if (!left) return nullptr;
     return parseExpressionTail(left);
+    // return parseEquality();
 }
  
 ASTNode* Parser::parseExpressionTail(ASTNode* left) {
@@ -236,7 +355,7 @@ ASTNode* Parser::parseFactor() {
         // ── Parenthesised expression ──────────────────────────────
         case TokenType::LEFT_PAREN: {
             proceed(TokenType::LEFT_PAREN);
-            ASTNode* inner = parseExpression();
+            ASTNode* inner = parseCondition();
             if (!proceed(TokenType::RIGHT_PAREN)) return nullptr;
             return inner;   // the parens are structural; no extra node needed
         }
@@ -274,10 +393,16 @@ void Parser::printAST(const ASTNode* node, int depth) {
     if (!node->op.empty())       label += " (op: " + node->op + ")";
     if (!node->dataType.empty()) label += " <type: " + node->dataType + ">";
  
-    std::cout << indent << " └─ " << label << "\n";
+   std::cout << indent << " |─ " << label << "\n";
 
     if (node->left)  printAST(node->left,  depth + 1);
     if (node->right) printAST(node->right, depth + 1);
+
+    // NEW: Print the ELSE branch visibly if it exists
+    if (node->alternate) {
+        std::cout << indent << "    └─ ELSE_BRANCH:\n";
+        printAST(node->alternate, depth + 1);
+    }
 
     for (const ASTNode* child : node->SUB_STATEMENTS)
         printAST(child, depth + 1);
