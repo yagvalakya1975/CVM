@@ -1,5 +1,5 @@
-#include "../include/parser/parser.h"
-#include "../include/lexer/lexer.h"
+#include "parser/parser.h"
+#include "lexer/lexer.h"
 #include <iostream>
 
 Parser::Parser(std::vector<Token>& tokens)
@@ -243,6 +243,30 @@ ASTNode* Parser::parsePrintStmt() {
 }
 
 ASTNode* Parser::parseExprStmt() {
+    // Assignment statement:  IDENTIFIER = expr ;
+    // We peek two tokens ahead without consuming; if the pattern matches
+    // we handle it specially so the parser doesn't choke on the '='.
+    if (check(TokenType::IDENTIFIER) && index + 1 < limit &&
+        parserTokens[index + 1].type == TokenType::EQUAL)
+    {
+        Token* nameTok = proceed(TokenType::IDENTIFIER);
+        if (!nameTok) return nullptr;
+        if (!proceed(TokenType::EQUAL)) return nullptr;
+
+        ASTNode* rhs = parseCondition();
+        if (!rhs) return nullptr;
+        if (!proceed(TokenType::SEMICOLON)) return nullptr;
+
+        // Build an ASSIGN_EXPR node; compiler handles the store
+        ASTNode* assign = new ASTNode(NODE_TYPE::ASSIGN_EXPR, nameTok->lexeme);
+        assign->op    = "=";
+        assign->right = rhs;
+
+        ASTNode* node = new ASTNode(NODE_TYPE::EXPR_STMT);
+        node->left    = assign;
+        return node;
+    }
+
     ASTNode* expr = parseCondition();
     if (!expr) return nullptr;
     if (!proceed(TokenType::SEMICOLON)) return nullptr;

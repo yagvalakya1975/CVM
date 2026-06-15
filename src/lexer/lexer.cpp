@@ -1,4 +1,4 @@
-#include "lexer/lexer.h"
+#include "../../include/lexer/lexer.h"
 #include <iostream>
 
 using namespace std;
