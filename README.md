@@ -293,25 +293,12 @@ The lexer recognizes:
 ## 🔄 Development Status
 
 Currently implemented:
-- ✅ Lexical analysis (Lexer)
-- ✅ Parsing (Parser)
-- ✅ AST Generation
-- 🔄 Virtual Machine Execution (In Progress)
-- 🔄 Bytecode Compilation (In Progress)
+- Lexical analysis (Lexer)
+- Parsing (Parser)
+- AST Generation
+- Virtual Machine Execution (In Progress)
+- Bytecode Compilation (In Progress)
 
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is open source and available under the MIT License (or specify your license).
 
 ## 🙋 Support
 
@@ -319,6 +306,5 @@ For questions or issues, please open an issue on the [GitHub Issues](https://git
 
 ---
 
-**Author**: [@yagvalakya1975](https://github.com/yagvalakya1975)
 
 **Last Updated**: June 2026
