@@ -16,9 +16,9 @@ inline const char* valueTypeName(ValueType t) {
 
 enum class NODE_TYPE {
     ROOT, DECL_STMT, PRINT_STMT, EXPR_STMT, BLOCK_STMT, IF_STMT, WHILE_STMT,
-    BINARY_EXPR, ASSIGN_EXPR, CAST_EXPR,
+    BINARY_EXPR, ASSIGN_EXPR, ARRAY_ASSIGN_EXPR, CAST_EXPR,
     INT_LITERAL, LONG_LITERAL, FLOAT_LITERAL, DOUBLE_LITERAL, STRING_LITERAL,
-    CHAR_LITERAL, BOOL_LITERAL, IDENTIFIER, INPUT_EXPR
+    CHAR_LITERAL, BOOL_LITERAL, IDENTIFIER, INPUT_EXPR, ARRAY_LITERAL, ARRAY_ACCESS
 };
 
 inline const char* nodeTypeName(NODE_TYPE type) {
@@ -32,6 +32,7 @@ inline const char* nodeTypeName(NODE_TYPE type) {
         case NODE_TYPE::WHILE_STMT:     return "WHILE_STMT";
         case NODE_TYPE::BINARY_EXPR:    return "BINARY_EXPR";
         case NODE_TYPE::ASSIGN_EXPR:    return "ASSIGN_EXPR";
+        case NODE_TYPE::ARRAY_ASSIGN_EXPR: return "ARRAY_ASSIGN_EXPR";
         case NODE_TYPE::CAST_EXPR:      return "CAST_EXPR";
         case NODE_TYPE::INT_LITERAL:    return "INT_LITERAL";
         case NODE_TYPE::LONG_LITERAL:   return "LONG_LITERAL";
@@ -42,6 +43,8 @@ inline const char* nodeTypeName(NODE_TYPE type) {
         case NODE_TYPE::BOOL_LITERAL:   return "BOOL_LITERAL";
         case NODE_TYPE::IDENTIFIER:     return "IDENTIFIER";
         case NODE_TYPE::INPUT_EXPR:     return "INPUT_EXPR";
+        case NODE_TYPE::ARRAY_LITERAL:  return "ARRAY_LITERAL";
+        case NODE_TYPE::ARRAY_ACCESS:   return "ARRAY_ACCESS";
     }
     return "UNKNOWN_NODE_TYPE";
 }
@@ -50,6 +53,9 @@ struct ASTNode {
     NODE_TYPE type;
     std::string value, op;
     ValueType dataType = ValueType::INVALID;
+    // For an array declaration, dataType is the element type. Multi-dimensional
+    // arrays are represented by arrayDimensions; runtime support is compiler-owned.
+    int arrayDimensions = 0;
     int line = 0;
     ASTNode* left = nullptr;
     ASTNode* right = nullptr;
@@ -78,5 +84,5 @@ private:
     ASTNode* parseStatement(); ASTNode* parseDeclStmt(); ASTNode* parsePrintStmt();
     ASTNode* parseExprStmt(); ASTNode* parseBlock(); ASTNode* parseIfStmt(); ASTNode* parseWhileStmt();
     ASTNode* parseCondition(); ASTNode* parseRelational(); ASTNode* parseExpression();
-    ASTNode* parseTerm(); ASTNode* parseFactor();
+    ASTNode* parseTerm(); ASTNode* parseFactor(); ASTNode* parseArrayLiteral();
 };

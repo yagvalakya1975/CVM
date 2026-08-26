@@ -27,7 +27,9 @@ void Lexer::scanToken() {
     switch (char c = advance()) {
         case '(': addToken(TokenType::LEFT_PAREN); break; case ')': addToken(TokenType::RIGHT_PAREN); break;
         case '{': addToken(TokenType::LEFT_BRACE); break; case '}': addToken(TokenType::RIGHT_BRACE); break;
-        case ';': addToken(TokenType::SEMICOLON); break; case '+': addToken(TokenType::PLUS); break;
+        case '[': addToken(TokenType::LEFT_BRACKET); break; case ']': addToken(TokenType::RIGHT_BRACKET); break;
+        case ',': addToken(TokenType::COMMA); break; case ';': addToken(TokenType::SEMICOLON); break;
+        case '+': addToken(TokenType::PLUS); break;
         case '-': addToken(TokenType::MINUS); break; case '*': addToken(TokenType::STAR); break;
         case '/': addToken(TokenType::SLASH); break; case '%': addToken(TokenType::MODULO); break;
         case '=': addToken(match('=') ? TokenType::EQUAL_EQUAL : TokenType::EQUAL); break;

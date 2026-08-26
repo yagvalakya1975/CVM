@@ -9,7 +9,7 @@
 #include "../include/vm/compiler.h"
 #include "../include/vm/vm.h"
 static void printUsage(const char* prog) {
-    std::cerr << "Usage: " << prog << " <source.pi> [--dump-ast] [--dump-bytecode]\n";
+    std::cerr << "Usage: " << prog << " <source.pi> [--dump-ast] [--dump-bytecode] [--parse-only]\n";
 }
 
 int main(int argc, char** argv) {
@@ -17,12 +17,14 @@ int main(int argc, char** argv) {
 
     bool dumpAST      = false;
     bool dumpBytecode = false;
+    bool parseOnly    = false;
     std::string sourceFile;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--dump-ast")      dumpAST      = true;
         else if (arg == "--dump-bytecode") dumpBytecode = true;
+        else if (arg == "--parse-only") parseOnly = true;
         else                          sourceFile   = arg;
     }
 
@@ -61,6 +63,8 @@ int main(int argc, char** argv) {
         parser.printAST(root);
         std::cout << "\n";
     }
+
+    if (parseOnly) return 0;
 
     Compiler compiler;
     Bytecode bytecode = compiler.compile(root);

@@ -55,6 +55,18 @@ ValueType Compiler::checkNode(const ASTNode* node) {
         case NODE_TYPE::DECL_STMT: {
             if (variables_.count(node->value)) typeError(node, "variable '" + node->value + "' is already declared");
             ValueType actual = checkExpr(node->right);
+            if (node->arrayDimensions > 0) {
+                if (!node->right || node->right->type != NODE_TYPE::ARRAY_LITERAL)
+                    typeError(node, "array declaration requires an array literal initializer");
+                else {
+                    if (node->right->arrayDimensions != node->arrayDimensions)
+                        typeError(node, "array initializer has incompatible dimensions");
+                    if (!assignable(node->dataType, actual))
+                        typeError(node, "array initializer has incompatible element type");
+                }
+                variables_[node->value] = {node->dataType, node->arrayDimensions};
+                return ValueType::INVALID;
+            }
             bool constantNarrowing = false;
             if (actual == ValueType::INT && node->right && node->right->type == NODE_TYPE::INT_LITERAL &&
                 (node->dataType == ValueType::BYTE || node->dataType == ValueType::SHORT || node->dataType == ValueType::CHAR)) {
@@ -66,7 +78,7 @@ ValueType Compiler::checkNode(const ASTNode* node) {
                 } catch (...) { typeError(node, "integer literal is out of range"); }
             }
             if (!assignable(node->dataType, actual) && !constantNarrowing) typeError(node, "cannot initialize " + std::string(valueTypeName(node->dataType)) + " with " + valueTypeName(actual));
-            variables_[node->value] = node->dataType;
+            variables_[node->value] = {node->dataType, 0};
             return ValueType::INVALID;
         }
         case NODE_TYPE::PRINT_STMT: checkExpr(node->left); return ValueType::INVALID;
@@ -87,7 +99,7 @@ ValueType Compiler::checkExpr(const ASTNode* node) {
         case NODE_TYPE::STRING_LITERAL: case NODE_TYPE::INPUT_EXPR: result=ValueType::STRING; break;
         case NODE_TYPE::CHAR_LITERAL: result=ValueType::CHAR; break; case NODE_TYPE::BOOL_LITERAL: result=ValueType::BOOLEAN; break;
         case NODE_TYPE::IDENTIFIER: {
-            auto it=variables_.find(node->value); if(it==variables_.end()) typeError(node,"undefined variable '"+node->value+"'"); else result=it->second; break;
+            auto it=variables_.find(node->value); if(it==variables_.end()) typeError(node,"undefined variable '"+node->value+"'"); else { result=it->second.type; const_cast<ASTNode*>(node)->arrayDimensions=it->second.arrayDimensions; } break;
         }
         case NODE_TYPE::CAST_EXPR: {
             ValueType from=checkExpr(node->left); if(!numeric(from)||!numeric(node->dataType)) typeError(node,"casts are only supported between numeric types"); result=node->dataType; break;
@@ -95,8 +107,32 @@ ValueType Compiler::checkExpr(const ASTNode* node) {
         case NODE_TYPE::ASSIGN_EXPR: {
             auto it=variables_.find(node->value); ValueType rhs=checkExpr(node->right);
             if(it==variables_.end()) typeError(node,"undefined variable '"+node->value+"'");
-            else { if(!assignable(it->second,rhs)) typeError(node,"cannot assign "+std::string(valueTypeName(rhs))+" to "+valueTypeName(it->second)); result=it->second; } break;
+            else { if(it->second.arrayDimensions != node->right->arrayDimensions || !assignable(it->second.type,rhs)) typeError(node,"cannot assign incompatible value to "+node->value); result=it->second.type; const_cast<ASTNode*>(node)->arrayDimensions=it->second.arrayDimensions; } break;
         }
+        case NODE_TYPE::ARRAY_LITERAL: {
+            if (node->SUB_STATEMENTS.empty()) {
+                typeError(node, "array literal cannot be empty because its element type is ambiguous");
+                break;
+            }
+            ValueType elementType = ValueType::INVALID;
+            int childDimensions = -1;
+            for (const ASTNode* element : node->SUB_STATEMENTS) {
+                ValueType current = checkExpr(element);
+                if (elementType == ValueType::INVALID) elementType = current;
+                else if (!assignable(elementType, current) && !assignable(current, elementType))
+                    typeError(element, "array literal elements must have compatible types");
+                if (childDimensions == -1) childDimensions = element->arrayDimensions;
+                else if (element->arrayDimensions != childDimensions)
+                    typeError(element, "array literal elements must have matching dimensions");
+            }
+            result = elementType;
+            const_cast<ASTNode*>(node)->arrayDimensions = childDimensions + 1;
+            break;
+        }
+        case NODE_TYPE::ARRAY_ACCESS:
+        case NODE_TYPE::ARRAY_ASSIGN_EXPR:
+            typeError(node, "array indexing is not implemented yet");
+            break;
         case NODE_TYPE::BINARY_EXPR: {
             ValueType a=checkExpr(node->left), b=checkExpr(node->right);
             if(node->op=="+" && (a==ValueType::STRING || b==ValueType::STRING)) result=ValueType::STRING;
@@ -273,6 +309,11 @@ void Compiler::compileExpr(const ASTNode* node) {
             emit(Instruction(OpCode::INPUT, node->value)); // value = prompt
             break;
 
+        case NODE_TYPE::ARRAY_LITERAL:
+            for (const ASTNode* element : node->SUB_STATEMENTS) compileExpr(element);
+            emit(Instruction(OpCode::BUILD_ARRAY, static_cast<int64_t>(node->SUB_STATEMENTS.size())));
+            break;
+
         // ── Assignment expression  id = expr ─────────────────────────────
         case NODE_TYPE::ASSIGN_EXPR:
             compileExpr(node->right);
@@ -346,7 +387,9 @@ void Compiler::disassemble(const Bytecode& code) {
                 std::cout << v;
         } else if (std::holds_alternative<double>(instr.operand)) {
             std::cout << std::get<double>(instr.operand);
-        } else {
+        } else if (std::holds_alternative<char16_t>(instr.operand)) {
+            std::cout << "'" << static_cast<char>(std::get<char16_t>(instr.operand)) << "'";
+        } else if (std::holds_alternative<std::string>(instr.operand)) {
             const std::string& s = std::get<std::string>(instr.operand);
             if (!s.empty()) std::cout << '"' << s << '"';
         }

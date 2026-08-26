@@ -3,7 +3,8 @@
 #include <utility>
 
 enum class TokenType {
-    LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE, SEMICOLON,
+    LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE, LEFT_BRACKET, RIGHT_BRACKET,
+    COMMA, SEMICOLON,
     PLUS, MINUS, STAR, SLASH, MODULO,
     EQUAL, EQUAL_EQUAL, BANG_EQUAL,
     GREATER, GREATER_EQUAL, LESS, LESS_EQUAL,
@@ -27,7 +28,8 @@ inline std::string tokenTypeToString(TokenType type) {
     switch (type) {
         case TokenType::LEFT_PAREN: return "("; case TokenType::RIGHT_PAREN: return ")";
         case TokenType::LEFT_BRACE: return "{"; case TokenType::RIGHT_BRACE: return "}";
-        case TokenType::SEMICOLON: return ";"; case TokenType::PLUS: return "+";
+        case TokenType::LEFT_BRACKET: return "["; case TokenType::RIGHT_BRACKET: return "]";
+        case TokenType::COMMA: return ","; case TokenType::SEMICOLON: return ";"; case TokenType::PLUS: return "+";
         case TokenType::MINUS: return "-"; case TokenType::STAR: return "*";
         case TokenType::SLASH: return "/"; case TokenType::MODULO: return "%";
         case TokenType::EQUAL: return "="; case TokenType::EQUAL_EQUAL: return "==";

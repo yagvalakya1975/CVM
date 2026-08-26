@@ -1,0 +1,4 @@
+int[] scores = [10, 20, 30];
+int[][] grid = [[1, 2], [3, 4]];
+print(scores[1]);
+scores[2] = 42;

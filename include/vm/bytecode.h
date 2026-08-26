@@ -3,6 +3,15 @@
 #include <variant>
 #include <vector>
 #include <cstdint>
+#include <memory>
+
+struct Array;
+using ArrayPtr = std::shared_ptr<Array>;
+using Value = std::variant<int64_t, double, char16_t, std::string, ArrayPtr>;
+
+struct Array {
+    std::vector<Value> elements;
+};
 
 
 enum class OpCode : uint8_t {
@@ -11,6 +20,7 @@ enum class OpCode : uint8_t {
     PUSH_STRING,    // operand: string  constant
     PUSH_CHAR,      // operand: string  constant (single char)
     PUSH_BOOL,      // operand: int  0=false 1=true
+    BUILD_ARRAY,    // operand: element count
     LOAD_VAR,       // operand: variable name  → push value on stack
     STORE_VAR,      // operand: variable name  ← pop value from stack
     ADD,
@@ -40,6 +50,7 @@ inline std::string opCodeName(OpCode op) {
         case OpCode::PUSH_STRING:   return "PUSH_STRING";
         case OpCode::PUSH_CHAR:     return "PUSH_CHAR";
         case OpCode::PUSH_BOOL:     return "PUSH_BOOL";
+        case OpCode::BUILD_ARRAY:   return "BUILD_ARRAY";
         case OpCode::LOAD_VAR:      return "LOAD_VAR";
         case OpCode::STORE_VAR:     return "STORE_VAR";
         case OpCode::ADD:           return "ADD";
@@ -63,9 +74,6 @@ inline std::string opCodeName(OpCode op) {
         default:                    return "???";
     }
 }
-
-
-using Value = std::variant<int64_t, double, char16_t, std::string>;
 
 
 struct Instruction {

@@ -17,6 +17,9 @@ add_executable(cvmpp
 
 include(CTest)
 if(BUILD_TESTING)
+    add_test(NAME parser_arrays COMMAND cvmpp ${CMAKE_CURRENT_SOURCE_DIR}/tests/parser_arrays.pi --parse-only)
+    add_test(NAME array_declarations_runtime COMMAND cvmpp ${CMAKE_CURRENT_SOURCE_DIR}/tests/array_declarations.pi)
+    set_tests_properties(array_declarations_runtime PROPERTIES PASS_REGULAR_EXPRESSION "\\[A, B, C\\]")
     add_test(NAME java_types_runtime COMMAND cvmpp ${CMAKE_CURRENT_SOURCE_DIR}/tests/java_types.pi)
     set_tests_properties(java_types_runtime PROPERTIES PASS_REGULAR_EXPRESSION "answer=43;3")
     add_test(NAME legacy_type_rejected COMMAND cvmpp ${CMAKE_CURRENT_SOURCE_DIR}/tests/legacy_type.pi)

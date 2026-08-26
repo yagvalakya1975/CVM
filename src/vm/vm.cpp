@@ -29,14 +29,22 @@ std::string VM::valueToString(const Value& v) {
         return s;
     }
     if (std::holds_alternative<char16_t>(v)) return std::string(1, static_cast<char>(std::get<char16_t>(v)));
-    return std::get<std::string>(v);
+    if (std::holds_alternative<std::string>(v)) return std::get<std::string>(v);
+    const ArrayPtr& array = std::get<ArrayPtr>(v);
+    std::string result = "[";
+    for (size_t i = 0; i < array->elements.size(); ++i) {
+        if (i > 0) result += ", ";
+        result += valueToString(array->elements[i]);
+    }
+    return result + "]";
 }
 
 bool VM::isTruthy(const Value& v) {
     if (std::holds_alternative<int64_t>(v))    return std::get<int64_t>(v) != 0;
     if (std::holds_alternative<double>(v))     return std::get<double>(v) != 0.0;
     if (std::holds_alternative<char16_t>(v))   return std::get<char16_t>(v) != 0;
-    return !std::get<std::string>(v).empty();
+    if (std::holds_alternative<std::string>(v)) return !std::get<std::string>(v).empty();
+    return !std::get<ArrayPtr>(v)->elements.empty();
 }
 
 Value VM::applyBinOp(const std::string& op, Value lhs, Value rhs) {
@@ -160,6 +168,18 @@ int VM::run(const Bytecode& code) {
                 case OpCode::PUSH_BOOL:
                     push(std::get<int64_t>(instr.operand)); // 0 or 1
                     break;
+
+                case OpCode::BUILD_ARRAY: {
+                    const int64_t count = std::get<int64_t>(instr.operand);
+                    if (count < 0 || static_cast<size_t>(count) > stack_.size())
+                        throw std::runtime_error("VMError: invalid array element count");
+                    auto array = std::make_shared<Array>();
+                    array->elements.resize(static_cast<size_t>(count));
+                    for (int64_t i = count - 1; i >= 0; --i)
+                        array->elements[static_cast<size_t>(i)] = pop();
+                    push(array);
+                    break;
+                }
 
                 case OpCode::LOAD_VAR: {
                     const std::string& name = std::get<std::string>(instr.operand);

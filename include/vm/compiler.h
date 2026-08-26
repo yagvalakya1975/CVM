@@ -24,7 +24,8 @@ private:
     int  emit(Instruction instr);         
     void patchJump(int instrIdx, int target); 
     int  currentIndex() const;             
-    std::unordered_map<std::string, ValueType> variables_;
+    struct VariableInfo { ValueType type; int arrayDimensions; };
+    std::unordered_map<std::string, VariableInfo> variables_;
     bool hadError_ = false;
     ValueType checkNode(const ASTNode* node);
     ValueType checkExpr(const ASTNode* node);
