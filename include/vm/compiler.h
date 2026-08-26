@@ -1,6 +1,7 @@
 #pragma once
 #include "../parser/parser.h"
 #include "bytecode.h"
+#include <unordered_map>
 
 
 class Compiler {
@@ -23,4 +24,12 @@ private:
     int  emit(Instruction instr);         
     void patchJump(int instrIdx, int target); 
     int  currentIndex() const;             
+    std::unordered_map<std::string, ValueType> variables_;
+    bool hadError_ = false;
+    ValueType checkNode(const ASTNode* node);
+    ValueType checkExpr(const ASTNode* node);
+    bool assignable(ValueType target, ValueType source) const;
+    bool numeric(ValueType type) const;
+    ValueType promoted(ValueType a, ValueType b) const;
+    void typeError(const ASTNode* node, const std::string& message);
 };

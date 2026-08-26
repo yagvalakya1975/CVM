@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
 
     Parser parser(tokens);
     ASTNode* root = parser.parse();
-    if (!root) {
+    if (!root || parser.hasErrors()) {
         std::cerr << "Parsing failed.\n";
         return 1;
     }

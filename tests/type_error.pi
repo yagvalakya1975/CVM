@@ -1,0 +1,2 @@
+int value = "not a number";
+print(x);

@@ -1,6 +1,6 @@
 #pragma once
 #include "bytecode.h"
-#include <unordered_map>
+#include <map>
 #include <vector>
 #include <string>
 
@@ -10,7 +10,7 @@ public:
 
 private:
     std::vector<Value> stack_;
-    std::unordered_map<std::string, Value> vars_;
+    std::map<std::string, Value> vars_;
 
     void        push(Value v);
     Value       pop();

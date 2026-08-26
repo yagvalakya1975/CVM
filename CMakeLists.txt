@@ -14,3 +14,13 @@ add_executable(cvmpp
     src/vm/compiler.cpp
     src/vm/vm.cpp
 )
+
+include(CTest)
+if(BUILD_TESTING)
+    add_test(NAME java_types_runtime COMMAND cvmpp ${CMAKE_CURRENT_SOURCE_DIR}/tests/java_types.pi)
+    set_tests_properties(java_types_runtime PROPERTIES PASS_REGULAR_EXPRESSION "answer=43;3")
+    add_test(NAME legacy_type_rejected COMMAND cvmpp ${CMAKE_CURRENT_SOURCE_DIR}/tests/legacy_type.pi)
+    set_tests_properties(legacy_type_rejected PROPERTIES WILL_FAIL TRUE)
+    add_test(NAME incompatible_assignment_rejected COMMAND cvmpp ${CMAKE_CURRENT_SOURCE_DIR}/tests/type_error.pi)
+    set_tests_properties(incompatible_assignment_rejected PROPERTIES WILL_FAIL TRUE)
+endif()

@@ -6,6 +6,6 @@ while(c==5){
 print("loop finished");
 int b = 4;
 int v = 3;
-string d = "24";
+String d = "24";
 print(c*b+v/1);
 print(d);

@@ -28,6 +28,7 @@ enum class OpCode : uint8_t {
     JUMP_IF_FALSE,  // operand: absolute instruction index; pops condition
     PRINT,          // pop top of stack, print it
     INPUT,          // operand: prompt string; push string result
+    CONVERT,        // operand: ValueType numeric code; convert top stack value
     POP,            // discard top of stack
     HALT
 };
@@ -56,6 +57,7 @@ inline std::string opCodeName(OpCode op) {
         case OpCode::JUMP_IF_FALSE: return "JUMP_IF_FALSE";
         case OpCode::PRINT:         return "PRINT";
         case OpCode::INPUT:         return "INPUT";
+        case OpCode::CONVERT:       return "CONVERT";
         case OpCode::POP:           return "POP";
         case OpCode::HALT:          return "HALT";
         default:                    return "???";
@@ -63,7 +65,7 @@ inline std::string opCodeName(OpCode op) {
 }
 
 
-using Value = std::variant<int64_t, double, std::string>;
+using Value = std::variant<int64_t, double, char16_t, std::string>;
 
 
 struct Instruction {
@@ -72,6 +74,7 @@ struct Instruction {
     explicit Instruction(OpCode o)                : op(o), operand(int64_t(0)) {}
     Instruction(OpCode o, int64_t v)              : op(o), operand(v) {}
     Instruction(OpCode o, double  v)              : op(o), operand(v) {}
+    Instruction(OpCode o, char16_t v)             : op(o), operand(v) {}
     Instruction(OpCode o, std::string v)          : op(o), operand(std::move(v)) {}
 };
 

@@ -1,0 +1,14 @@
+byte b = 7;
+short s = b;
+long l = s;
+int i = s;
+float f = l;
+double d = f + 0.5;
+char c = 'A';
+String label = "answer=";
+boolean ok = d > 7.0;
+int truncated = (int) 3.9;
+if (ok) {
+    print(label + 43);
+    print(truncated);
+}

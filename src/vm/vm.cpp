@@ -28,12 +28,14 @@ std::string VM::valueToString(const Value& v) {
         if (s.back() == '.') s += '0';
         return s;
     }
+    if (std::holds_alternative<char16_t>(v)) return std::string(1, static_cast<char>(std::get<char16_t>(v)));
     return std::get<std::string>(v);
 }
 
 bool VM::isTruthy(const Value& v) {
     if (std::holds_alternative<int64_t>(v))    return std::get<int64_t>(v) != 0;
     if (std::holds_alternative<double>(v))     return std::get<double>(v) != 0.0;
+    if (std::holds_alternative<char16_t>(v))   return std::get<char16_t>(v) != 0;
     return !std::get<std::string>(v).empty();
 }
 
@@ -44,6 +46,11 @@ Value VM::applyBinOp(const std::string& op, Value lhs, Value rhs) {
          std::holds_alternative<std::string>(rhs)))
     {
         return valueToString(lhs) + valueToString(rhs);
+    }
+
+    if (std::holds_alternative<std::string>(lhs) && std::holds_alternative<std::string>(rhs)) {
+        if (op == "==") return int64_t(std::get<std::string>(lhs) == std::get<std::string>(rhs));
+        if (op == "!=") return int64_t(std::get<std::string>(lhs) != std::get<std::string>(rhs));
     }
 
     // If both are int, stay int
@@ -77,6 +84,7 @@ Value VM::applyBinOp(const std::string& op, Value lhs, Value rhs) {
     auto toDouble = [](const Value& v) -> double {
         if (std::holds_alternative<int64_t>(v)) return static_cast<double>(std::get<int64_t>(v));
         if (std::holds_alternative<double>(v))  return std::get<double>(v);
+        if (std::holds_alternative<char16_t>(v)) return static_cast<double>(std::get<char16_t>(v));
         throw std::runtime_error("VMError: cannot coerce string to number");
     };
 
@@ -142,8 +150,11 @@ int VM::run(const Bytecode& code) {
                     break;
 
                 case OpCode::PUSH_STRING:
-                case OpCode::PUSH_CHAR:
                     push(std::get<std::string>(instr.operand));
+                    break;
+
+                case OpCode::PUSH_CHAR:
+                    push(std::get<char16_t>(instr.operand));
                     break;
 
                 case OpCode::PUSH_BOOL:
@@ -211,6 +222,24 @@ int VM::run(const Bytecode& code) {
                     std::string line;
                     std::getline(std::cin, line);
                     push(line);
+                    break;
+                }
+
+                case OpCode::CONVERT: {
+                    Value value = pop();
+                    const int target = static_cast<int>(std::get<int64_t>(instr.operand));
+                    auto number = [](const Value& v) -> double {
+                        if (std::holds_alternative<int64_t>(v)) return static_cast<double>(std::get<int64_t>(v));
+                        if (std::holds_alternative<double>(v)) return std::get<double>(v);
+                        if (std::holds_alternative<char16_t>(v)) return static_cast<double>(std::get<char16_t>(v));
+                        throw std::runtime_error("VMError: cannot cast a String to a numeric type");
+                    };
+                    const double n = number(value);
+                    // ValueType values: BYTE=1 through DOUBLE=6, CHAR=7.
+                    if (target >= 1 && target <= 4) push(static_cast<int64_t>(n));
+                    else if (target == 5 || target == 6) push(n);
+                    else if (target == 7) push(static_cast<char16_t>(static_cast<int64_t>(n)));
+                    else throw std::runtime_error("VMError: invalid cast target");
                     break;
                 }
 

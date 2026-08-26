@@ -6,13 +6,108 @@
 
 Bytecode Compiler::compile(const ASTNode* root) {
     code_.clear();
+    variables_.clear();
+    hadError_ = false;
     if (!root) {
         std::cerr << "CompilerError: null AST root.\n";
         return {};
     }
+    checkNode(root);
+    if (hadError_) return {};
     compileNode(root);
     emit(Instruction(OpCode::HALT));
     return code_;
+}
+
+bool Compiler::numeric(ValueType t) const {
+    return t >= ValueType::BYTE && t <= ValueType::CHAR;
+}
+
+bool Compiler::assignable(ValueType target, ValueType source) const {
+    if (target == source) return true;
+    if (!numeric(target) || !numeric(source)) return false;
+    auto rank = [](ValueType t) {
+        switch (t) { case ValueType::BYTE: return 0; case ValueType::SHORT: return 1;
+        case ValueType::CHAR: return 1; case ValueType::INT: return 2; case ValueType::LONG: return 3;
+        case ValueType::FLOAT: return 4; case ValueType::DOUBLE: return 5; default: return -1; }
+    };
+    return rank(source) <= rank(target) && !(source == ValueType::CHAR && target == ValueType::SHORT);
+}
+
+ValueType Compiler::promoted(ValueType a, ValueType b) const {
+    if (a == ValueType::DOUBLE || b == ValueType::DOUBLE) return ValueType::DOUBLE;
+    if (a == ValueType::FLOAT || b == ValueType::FLOAT) return ValueType::FLOAT;
+    if (a == ValueType::LONG || b == ValueType::LONG) return ValueType::LONG;
+    return ValueType::INT;
+}
+
+void Compiler::typeError(const ASTNode* node, const std::string& message) {
+    std::cerr << "TypeError line " << (node ? node->line : 0) << ": " << message << "\n";
+    hadError_ = true;
+}
+
+ValueType Compiler::checkNode(const ASTNode* node) {
+    if (!node) return ValueType::INVALID;
+    switch (node->type) {
+        case NODE_TYPE::ROOT: case NODE_TYPE::BLOCK_STMT:
+            for (const auto* child : node->SUB_STATEMENTS) checkNode(child);
+            return ValueType::INVALID;
+        case NODE_TYPE::DECL_STMT: {
+            if (variables_.count(node->value)) typeError(node, "variable '" + node->value + "' is already declared");
+            ValueType actual = checkExpr(node->right);
+            bool constantNarrowing = false;
+            if (actual == ValueType::INT && node->right && node->right->type == NODE_TYPE::INT_LITERAL &&
+                (node->dataType == ValueType::BYTE || node->dataType == ValueType::SHORT || node->dataType == ValueType::CHAR)) {
+                try {
+                    long long v = std::stoll(node->right->value);
+                    constantNarrowing = (node->dataType == ValueType::BYTE && v >= -128 && v <= 127) ||
+                                        (node->dataType == ValueType::SHORT && v >= -32768 && v <= 32767) ||
+                                        (node->dataType == ValueType::CHAR && v >= 0 && v <= 65535);
+                } catch (...) { typeError(node, "integer literal is out of range"); }
+            }
+            if (!assignable(node->dataType, actual) && !constantNarrowing) typeError(node, "cannot initialize " + std::string(valueTypeName(node->dataType)) + " with " + valueTypeName(actual));
+            variables_[node->value] = node->dataType;
+            return ValueType::INVALID;
+        }
+        case NODE_TYPE::PRINT_STMT: checkExpr(node->left); return ValueType::INVALID;
+        case NODE_TYPE::EXPR_STMT: checkExpr(node->left); return ValueType::INVALID;
+        case NODE_TYPE::IF_STMT: case NODE_TYPE::WHILE_STMT:
+            if (checkExpr(node->left) != ValueType::BOOLEAN) typeError(node->left, "condition must have type boolean");
+            checkNode(node->right); if (node->alternate) checkNode(node->alternate); return ValueType::INVALID;
+        default: return checkExpr(node);
+    }
+}
+
+ValueType Compiler::checkExpr(const ASTNode* node) {
+    if (!node) return ValueType::INVALID;
+    ValueType result = ValueType::INVALID;
+    switch (node->type) {
+        case NODE_TYPE::INT_LITERAL: result=ValueType::INT; break; case NODE_TYPE::LONG_LITERAL: result=ValueType::LONG; break;
+        case NODE_TYPE::FLOAT_LITERAL: result=ValueType::FLOAT; break; case NODE_TYPE::DOUBLE_LITERAL: result=ValueType::DOUBLE; break;
+        case NODE_TYPE::STRING_LITERAL: case NODE_TYPE::INPUT_EXPR: result=ValueType::STRING; break;
+        case NODE_TYPE::CHAR_LITERAL: result=ValueType::CHAR; break; case NODE_TYPE::BOOL_LITERAL: result=ValueType::BOOLEAN; break;
+        case NODE_TYPE::IDENTIFIER: {
+            auto it=variables_.find(node->value); if(it==variables_.end()) typeError(node,"undefined variable '"+node->value+"'"); else result=it->second; break;
+        }
+        case NODE_TYPE::CAST_EXPR: {
+            ValueType from=checkExpr(node->left); if(!numeric(from)||!numeric(node->dataType)) typeError(node,"casts are only supported between numeric types"); result=node->dataType; break;
+        }
+        case NODE_TYPE::ASSIGN_EXPR: {
+            auto it=variables_.find(node->value); ValueType rhs=checkExpr(node->right);
+            if(it==variables_.end()) typeError(node,"undefined variable '"+node->value+"'");
+            else { if(!assignable(it->second,rhs)) typeError(node,"cannot assign "+std::string(valueTypeName(rhs))+" to "+valueTypeName(it->second)); result=it->second; } break;
+        }
+        case NODE_TYPE::BINARY_EXPR: {
+            ValueType a=checkExpr(node->left), b=checkExpr(node->right);
+            if(node->op=="+" && (a==ValueType::STRING || b==ValueType::STRING)) result=ValueType::STRING;
+            else if(node->op=="==" || node->op=="!=") { if(a!=b && !(numeric(a)&&numeric(b))) typeError(node,"incompatible equality operands"); result=ValueType::BOOLEAN; }
+            else if(node->op=="<"||node->op=="<="||node->op==">"||node->op==">=") { if(!numeric(a)||!numeric(b)) typeError(node,"comparison requires numeric operands"); result=ValueType::BOOLEAN; }
+            else { if(!numeric(a)||!numeric(b)) typeError(node,"arithmetic requires numeric operands"); result=promoted(a,b); } break;
+        }
+        default: typeError(node,"invalid expression"); break;
+    }
+    const_cast<ASTNode*>(node)->dataType=result;
+    return result;
 }
 
 int Compiler::emit(Instruction instr) {
@@ -141,7 +236,16 @@ void Compiler::compileExpr(const ASTNode* node) {
                              static_cast<int64_t>(std::stoll(node->value))));
             break;
 
+        case NODE_TYPE::LONG_LITERAL:
+            emit(Instruction(OpCode::PUSH_INT,
+                             static_cast<int64_t>(std::stoll(node->value))));
+            break;
+
         case NODE_TYPE::FLOAT_LITERAL:
+            emit(Instruction(OpCode::PUSH_FLOAT, std::stod(node->value)));
+            break;
+
+        case NODE_TYPE::DOUBLE_LITERAL:
             emit(Instruction(OpCode::PUSH_FLOAT, std::stod(node->value)));
             break;
 
@@ -150,7 +254,8 @@ void Compiler::compileExpr(const ASTNode* node) {
             break;
 
         case NODE_TYPE::CHAR_LITERAL:
-            emit(Instruction(OpCode::PUSH_CHAR, node->value));
+            emit(Instruction(OpCode::PUSH_CHAR,
+                             static_cast<char16_t>(static_cast<unsigned char>(node->value.at(0)))));
             break;
 
         case NODE_TYPE::BOOL_LITERAL:
@@ -174,6 +279,11 @@ void Compiler::compileExpr(const ASTNode* node) {
             emit(Instruction(OpCode::STORE_VAR, node->value));
             // Assignment leaves a value on the stack (it's an expression)
             emit(Instruction(OpCode::LOAD_VAR,  node->value));
+            break;
+
+        case NODE_TYPE::CAST_EXPR:
+            compileExpr(node->left);
+            emit(Instruction(OpCode::CONVERT, static_cast<int64_t>(node->dataType)));
             break;
 
         // ── Binary expression ─────────────────────────────────────────────
