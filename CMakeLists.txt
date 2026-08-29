@@ -17,6 +17,27 @@ add_executable(cvmpp
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(local_slots_bytecode_test
+        tests/local_slots_bytecode.cpp
+        src/lexer/lexer.cpp
+        src/parser/parser.cpp
+        src/vm/compiler.cpp
+    )
+    add_test(NAME local_slots_bytecode COMMAND local_slots_bytecode_test)
+    add_executable(char_numeric_bytecode_test
+        tests/char_numeric_bytecode.cpp
+        src/lexer/lexer.cpp
+        src/parser/parser.cpp
+        src/vm/compiler.cpp
+    )
+    add_test(NAME char_numeric_bytecode COMMAND char_numeric_bytecode_test)
+    add_executable(runtime_value_model_test
+        tests/runtime_value_model.cpp
+        src/vm/vm.cpp
+    )
+    add_test(NAME runtime_value_model COMMAND runtime_value_model_test)
+    add_test(NAME local_slots_runtime COMMAND cvmpp ${CMAKE_CURRENT_SOURCE_DIR}/tests/local_slots.pi)
+    set_tests_properties(local_slots_runtime PROPERTIES PASS_REGULAR_EXPRESSION "1;10;31;40")
     add_test(NAME parser_arrays COMMAND cvmpp ${CMAKE_CURRENT_SOURCE_DIR}/tests/parser_arrays.pi --parse-only)
     add_test(NAME array_declarations_runtime COMMAND cvmpp ${CMAKE_CURRENT_SOURCE_DIR}/tests/array_declarations.pi)
     set_tests_properties(array_declarations_runtime PROPERTIES PASS_REGULAR_EXPRESSION "\\[A, B, C\\]")

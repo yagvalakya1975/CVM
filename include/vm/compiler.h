@@ -2,6 +2,7 @@
 #include "../parser/parser.h"
 #include "bytecode.h"
 #include <unordered_map>
+#include <vector>
 
 
 class Compiler {
@@ -24,8 +25,10 @@ private:
     int  emit(Instruction instr);         
     void patchJump(int instrIdx, int target); 
     int  currentIndex() const;             
-    struct VariableInfo { ValueType type; int arrayDimensions; };
-    std::unordered_map<std::string, VariableInfo> variables_;
+    struct VariableInfo { ValueType type; int arrayDimensions; int slot; };
+    using Scope = std::unordered_map<std::string, VariableInfo>;
+    std::vector<Scope> scopes_;
+    int nextSlot_ = 0;
     bool hadError_ = false;
     ValueType checkNode(const ASTNode* node);
     ValueType checkExpr(const ASTNode* node);
@@ -33,4 +36,5 @@ private:
     bool numeric(ValueType type) const;
     ValueType promoted(ValueType a, ValueType b) const;
     void typeError(const ASTNode* node, const std::string& message);
+    VariableInfo* resolve(const std::string& name);
 };

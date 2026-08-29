@@ -52,10 +52,13 @@ inline const char* nodeTypeName(NODE_TYPE type) {
 struct ASTNode {
     NODE_TYPE type;
     std::string value, op;
-    ValueType dataType = ValueType::INVALID;
+    // Semantic-analysis annotations. They may be filled in while an AST is
+    // traversed through a const pointer.
+    mutable ValueType dataType = ValueType::INVALID;
+    mutable int localSlot = -1;
     // For an array declaration, dataType is the element type. Multi-dimensional
     // arrays are represented by arrayDimensions; runtime support is compiler-owned.
-    int arrayDimensions = 0;
+    mutable int arrayDimensions = 0;
     int line = 0;
     ASTNode* left = nullptr;
     ASTNode* right = nullptr;

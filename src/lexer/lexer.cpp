@@ -53,7 +53,8 @@ void Lexer::check_identifier() {
             cerr << "LexerError line " << line << ": '" << text << "' is no longer a type; use '"
                  << (text == "string" ? "String" : "boolean") << "'.\n";
         addToken(found->second, text);
-    } else addToken(TokenType::IDENTIFIER, text);
+    } 
+    else addToken(TokenType::IDENTIFIER, text);
 }
 
 void Lexer::check_string() {
@@ -64,9 +65,17 @@ void Lexer::check_string() {
 }
 
 void Lexer::check_character() {
-    if (isAtEnd() || peek() == '\'' || peek() == '\n') { cerr << "LexerError line " << line << ": empty character literal.\n"; return; }
+    if (isAtEnd() || peek() == '\'' || peek() == '\n') 
+    { 
+        cerr << "LexerError line " << line << ": empty character literal.\n"; 
+        return; 
+    }
     advance();
-    if (peek() != '\'') { cerr << "LexerError line " << line << ": character literal must contain one raw character.\n"; return; }
+    if (peek() != '\'') 
+    { 
+        cerr << "LexerError line " << line << ": character literal must contain one raw character.\n"; 
+        return; 
+    }
     advance();
     addToken(TokenType::CHAR_LITERAL, source.substr(start + 1, current - start - 2));
 }
@@ -74,7 +83,12 @@ void Lexer::check_character() {
 void Lexer::check_number() {
     while (isDigit(peek())) advance();
     bool decimal = false;
-    if (peek() == '.' && isDigit(peekNext())) { decimal = true; advance(); while (isDigit(peek())) advance(); }
+    if (peek() == '.' && isDigit(peekNext())) 
+    { 
+        decimal = true; 
+        advance(); 
+        while (isDigit(peek())) advance(); 
+    }
     char suffix = peek();
     if (suffix == 'L' || suffix == 'l' || suffix == 'F' || suffix == 'f' || suffix == 'D' || suffix == 'd') advance();
     string value = source.substr(start, current - start);
@@ -88,7 +102,12 @@ bool Lexer::isAtEnd() { return current >= static_cast<int>(source.length()); }
 char Lexer::advance() { return source[current++]; }
 char Lexer::peek() { return isAtEnd() ? '\0' : source[current]; }
 char Lexer::peekNext() { return current + 1 >= static_cast<int>(source.length()) ? '\0' : source[current + 1]; }
-bool Lexer::match(char expected) { if (isAtEnd() || source[current] != expected) return false; ++current; return true; }
+bool Lexer::match(char expected) 
+{ 
+    if (isAtEnd() || source[current] != expected) return false; 
+    ++current; 
+    return true; 
+}
 bool Lexer::isDigit(char c) { return c >= '0' && c <= '9'; }
 bool Lexer::isAlpha(char c) { return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_'; }
 bool Lexer::isAlphaNumeric(char c) { return isAlpha(c) || isDigit(c); }

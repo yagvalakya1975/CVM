@@ -15,17 +15,19 @@ static void printUsage(const char* prog) {
 int main(int argc, char** argv) {
     if (argc < 2) { printUsage(argv[0]); return 1; }
 
-    bool dumpAST      = false;
+    bool dumpAST = false;
     bool dumpBytecode = false;
-    bool parseOnly    = false;
+    bool parseOnly = false;
+    bool dumpTokens = false;
     std::string sourceFile;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
-        if (arg == "--dump-ast")      dumpAST      = true;
-        else if (arg == "--dump-bytecode") dumpBytecode = true;
+        if (arg == "--ast") dumpAST = true;
+        else if (arg == "--bytecode") dumpBytecode = true;
         else if (arg == "--parse-only") parseOnly = true;
-        else                          sourceFile   = arg;
+        else if (arg == "--tokens") dumpTokens = true;
+        else sourceFile = arg;
     }
 
     if (sourceFile.empty()) { printUsage(argv[0]); return 1; }
@@ -42,10 +44,13 @@ int main(int argc, char** argv) {
     Lexer lexer(src);
     std::vector<Token> tokens = lexer.scanTokens();
 
-    for (const auto& token : tokens) {
-        std::cout << "Token: " << tokenTypeToString(token.type) 
-                  << " | Lexeme: '" << token.lexeme 
-                  << "' | Line: " << token.line << "\n";
+    if(dumpTokens)
+    {
+        for (const auto& token : tokens) {
+            std::cout << "Token: " << tokenTypeToString(token.type) 
+                      << " | Lexeme: '" << token.lexeme 
+                      << "' | Line: " << token.line << "\n";
+        }
     }
 
     Parser parser(tokens);
@@ -73,7 +78,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // if (dumpBytecode)
+    if (dumpBytecode)
         Compiler::disassemble(bytecode);
 
     VM vm;

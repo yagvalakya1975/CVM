@@ -1,17 +1,11 @@
 #pragma once
 #include <string>
+#include <cstdint>
 #include <variant>
 #include <vector>
-#include <cstdint>
-#include <memory>
 
-struct Array;
-using ArrayPtr = std::shared_ptr<Array>;
-using Value = std::variant<int64_t, double, char16_t, std::string, ArrayPtr>;
-
-struct Array {
-    std::vector<Value> elements;
-};
+// Bytecode operands describe encoded instruction data, not VM runtime values.
+using Operand = std::variant<int64_t, double, char16_t, std::string>;
 
 
 enum class OpCode : uint8_t {
@@ -21,8 +15,8 @@ enum class OpCode : uint8_t {
     PUSH_CHAR,      // operand: string  constant (single char)
     PUSH_BOOL,      // operand: int  0=false 1=true
     BUILD_ARRAY,    // operand: element count
-    LOAD_VAR,       // operand: variable name  → push value on stack
-    STORE_VAR,      // operand: variable name  ← pop value from stack
+    LOAD_LOCAL,     // operand: numeric local slot → push value on stack
+    STORE_LOCAL,    // operand: numeric local slot ← pop value from stack
     ADD,
     SUB,
     MUL,
@@ -51,8 +45,8 @@ inline std::string opCodeName(OpCode op) {
         case OpCode::PUSH_CHAR:     return "PUSH_CHAR";
         case OpCode::PUSH_BOOL:     return "PUSH_BOOL";
         case OpCode::BUILD_ARRAY:   return "BUILD_ARRAY";
-        case OpCode::LOAD_VAR:      return "LOAD_VAR";
-        case OpCode::STORE_VAR:     return "STORE_VAR";
+        case OpCode::LOAD_LOCAL:    return "LOAD_LOCAL";
+        case OpCode::STORE_LOCAL:   return "STORE_LOCAL";
         case OpCode::ADD:           return "ADD";
         case OpCode::SUB:           return "SUB";
         case OpCode::MUL:           return "MUL";
@@ -78,7 +72,7 @@ inline std::string opCodeName(OpCode op) {
 
 struct Instruction {
     OpCode  op;
-    Value   operand;
+    Operand operand;
     explicit Instruction(OpCode o)                : op(o), operand(int64_t(0)) {}
     Instruction(OpCode o, int64_t v)              : op(o), operand(v) {}
     Instruction(OpCode o, double  v)              : op(o), operand(v) {}

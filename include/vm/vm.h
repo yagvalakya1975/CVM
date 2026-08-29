@@ -1,6 +1,6 @@
 #pragma once
 #include "bytecode.h"
-#include <map>
+#include "value.h"
 #include <vector>
 #include <string>
 
@@ -10,7 +10,8 @@ public:
 
 private:
     std::vector<Value> stack_;
-    std::map<std::string, Value> vars_;
+    std::vector<Value> locals_;
+    std::vector<bool> initializedLocals_;
 
     void        push(Value v);
     Value       pop();
