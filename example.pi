@@ -1,11 +1,73 @@
-int c = 5;
-while(c==5){
-    print("Hi");
-    c = c + 1;
+print("=== CVM benchmark start ===");
+
+long sum = 0L;
+int i = 0;
+while (i < 200000) {
+    sum = sum + i;
+    sum = sum % 1000000007L;
+    i = i + 1;
 }
-print("loop finished");
-int b = 4;
-int v = 3;
-String d = "24";
-print(c*b+v/1);
-print(d);
+print("arith sum:");
+print(sum);
+
+int limit = 2000;
+int n = 2;
+int primeCount = 0;
+while (n < limit) {
+    boolean isPrime = true;
+    int d = 2;
+    while (d * d <= n) {
+        if (n % d == 0) {
+            isPrime = false;
+        }
+        d = d + 1;
+    }
+    if (isPrime) {
+        primeCount = primeCount + 1;
+    }
+    n = n + 1;
+}
+print("primes below limit:");
+print(primeCount);
+
+String text = "x";
+int j = 0;
+while (j < 2000) {
+    text = text + "x";
+    j = j + 1;
+}
+print("string churn complete");
+
+int k = 0;
+long scopedTotal = 0L;
+while (k < 20000) {
+    {
+        int a = k;
+        int b = k * 2;
+        int c = a + b;
+        scopedTotal = scopedTotal + c;
+    }
+    k = k + 1;
+}
+print("scoped total:");
+print(scopedTotal);
+
+int arrIter = 0;
+while (arrIter < 2000) {
+    int[] batch = [arrIter, arrIter + 1, arrIter + 2, arrIter + 3];
+    arrIter = arrIter + 1;
+}
+print("array churn complete");
+
+double acc = 0.0;
+int m = 0;
+while (m < 10000) {
+    double wide = m;
+    int narrow = (int) (wide / 2.0);
+    acc = acc + narrow;
+    m = m + 1;
+}
+print("conversion acc:");
+print(acc);
+
+print("=== CVM benchmark end ===");

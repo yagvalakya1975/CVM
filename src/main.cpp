@@ -1,15 +1,19 @@
-#include <iostream>
+#include "lexer/lexer.h"
+#include "lexer/token.h"
+#include "parser/parser.h"
+#include "vm/compiler.h"
+#include "vm/vm_error.h"
+#include "vm/vm.h"
 #include <fstream>
+#include <iostream>
+#include <memory>
 #include <sstream>
-#include <vector>
 #include <string>
-#include "../include/lexer/lexer.h"
-#include "../include/lexer/token.h"
-#include "../include/parser/parser.h"
-#include "../include/vm/compiler.h"
-#include "../include/vm/vm.h"
+#include <vector>
+
+using namespace std;
 static void printUsage(const char* prog) {
-    std::cerr << "Usage: " << prog << " <source.pi> [--dump-ast] [--dump-bytecode] [--parse-only]\n";
+    cerr << "Usage: " << prog << " <source.pi> [--dump-ast] [--dump-bytecode] [--parse-only] [--tokens]\n";
 }
 
 int main(int argc, char** argv) {
@@ -19,62 +23,67 @@ int main(int argc, char** argv) {
     bool dumpBytecode = false;
     bool parseOnly = false;
     bool dumpTokens = false;
-    std::string sourceFile;
+    string sourceFile;
 
     for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg == "--ast") dumpAST = true;
-        else if (arg == "--bytecode") dumpBytecode = true;
+        string arg = argv[i];
+        if (arg == "--dump-ast") dumpAST = true;
+        else if (arg == "--dump-bytecode") dumpBytecode = true;
         else if (arg == "--parse-only") parseOnly = true;
         else if (arg == "--tokens") dumpTokens = true;
-        else sourceFile = arg;
+        else if (!arg.empty() && arg[0] == '-') {
+            cerr << "Error: unknown option '" << arg << "'\n";
+            printUsage(argv[0]);
+            return 1;
+        } else if (!sourceFile.empty()) {
+            cerr << "Error: multiple source files provided.\n";
+            printUsage(argv[0]);
+            return 1;
+        } else sourceFile = arg;
     }
 
     if (sourceFile.empty()) { printUsage(argv[0]); return 1; }
 
-    std::ifstream fs(sourceFile);
+    ifstream fs(sourceFile);
     if (!fs) {
-        std::cerr << "Error: cannot open '" << sourceFile << "'\n";
+        cerr << "Error: cannot open '" << sourceFile << "'\n";
         return 1;
     }
-    std::ostringstream buf;
+    ostringstream buf;
     buf << fs.rdbuf();
-    std::string src = buf.str();
+    string src = buf.str();
 
     Lexer lexer(src);
-    std::vector<Token> tokens = lexer.scanTokens();
+    vector<Token> tokens = lexer.scanTokens();
 
     if(dumpTokens)
     {
         for (const auto& token : tokens) {
-            std::cout << "Token: " << tokenTypeToString(token.type) 
+            cout << "Token: " << tokenTypeToString(token.type) 
                       << " | Lexeme: '" << token.lexeme 
                       << "' | Line: " << token.line << "\n";
         }
     }
 
     Parser parser(tokens);
-    ASTNode* root = parser.parse();
+    unique_ptr<ASTNode> root(parser.parse());
     if (!root || parser.hasErrors()) {
-        std::cerr << "Parsing failed.\n";
+        cerr << "Parsing failed.\n";
         return 1;
     }
-
-    std::cout << "\nAST:\n";
-    parser.printAST(root);
-
+    
     if (dumpAST) {
-        std::cout << "=== AST ===\n";
-        parser.printAST(root);
-        std::cout << "\n";
+        cout << "AST\n";
+        parser.printAST(root.get());
+        cout << "\n";
     }
 
     if (parseOnly) return 0;
 
     Compiler compiler;
-    Bytecode bytecode = compiler.compile(root);
+    Bytecode bytecode = compiler.compile(root.get());
     if (bytecode.empty()) {
-        std::cerr << "Compilation failed.\n";
+        cerr << "Compilation failed.\n";
         return 1;
     }
 
@@ -82,5 +91,7 @@ int main(int argc, char** argv) {
         Compiler::disassemble(bytecode);
 
     VM vm;
-    return vm.run(bytecode);
+    try { return vm.run(bytecode); }
+    catch (const VMError& e) { cerr << "Runtime error: " << e.what() << "\n"; return 1; }
+    catch (const exception& e) { cerr << "Internal error: " << e.what() << "\n"; return 1; }
 }

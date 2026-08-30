@@ -1,26 +1,38 @@
-#include "../../include/vm/compiler.h"
+#include "vm/compiler.h"
+#include <algorithm>
+#include <iomanip>
 #include <iostream>
 #include <stdexcept>
-#include <iomanip>
+
+using namespace std;
 
 
 Bytecode Compiler::compile(const ASTNode* root) {
     code_.clear();
     scopes_.clear();
+    functionTable_.clear();
     nextSlot_ = 0;
+    topFrameSize_ = 0;
+    currentReturnType_ = ValueType::INVALID;
     hadError_ = false;
     if (!root) {
-        std::cerr << "CompilerError: null AST root.\n";
+        cerr << "CompilerError: null AST root.\n";
         return {};
     }
     checkNode(root);
     if (hadError_) return {};
-    compileNode(root);
+    const int skipFunctions = emit(Instruction(OpCode::JUMP, int64_t(0)));
+    for (const ASTNode* child : root->SUB_STATEMENTS)
+        if (child->type == NODE_TYPE::FUNCTION_DECL) compileFunctionDecl(child);
+    patchJump(skipFunctions, currentIndex());
+    emit(Instruction(OpCode::ENTER_FRAME, static_cast<int64_t>(topFrameSize_)));
+    for (const ASTNode* child : root->SUB_STATEMENTS)
+        if (child->type != NODE_TYPE::FUNCTION_DECL) compileNode(child);
     emit(Instruction(OpCode::HALT));
     return code_;
 }
 
-Compiler::VariableInfo* Compiler::resolve(const std::string& name) {
+Compiler::VariableInfo* Compiler::resolve(const string& name) {
     for (auto it = scopes_.rbegin(); it != scopes_.rend(); ++it) {
         auto found = it->find(name);
         if (found != it->end()) return &found->second;
@@ -57,8 +69,13 @@ ValueType Compiler::promoted(ValueType a, ValueType b) const {
     return ValueType::INT;
 }
 
-void Compiler::typeError(const ASTNode* node, const std::string& message) {
-    std::cerr << "TypeError line " << (node ? node->line : 0) << ": " << message << "\n";
+void Compiler::emitStorageConversion(ValueType target, ValueType source) {
+    if (numeric(target) && numeric(source))
+        emit(Instruction(OpCode::CONVERT, static_cast<int64_t>(target)));
+}
+
+void Compiler::typeError(const ASTNode* node, const string& message) {
+    cerr << "TypeError line " << (node ? node->line : 0) << ": " << message << "\n";
     hadError_ = true;
 }
 
@@ -67,8 +84,47 @@ ValueType Compiler::checkNode(const ASTNode* node) {
     switch (node->type) {
         case NODE_TYPE::ROOT:
             scopes_.emplace_back();
-            for (const auto* child : node->SUB_STATEMENTS) 
-                checkNode(child);
+            nextSlot_ = 0;
+            for (const auto* child : node->SUB_STATEMENTS) {
+                if (child->type != NODE_TYPE::FUNCTION_DECL) {
+                    checkNode(child);
+                    continue;
+                }
+                if (functionTable_.count(child->value)) {
+                    typeError(child, "function '" + child->value + "' is already declared");
+                    continue;
+                }
+                // Register this declaration immediately before checking its body.
+                // This permits direct recursion, but not calls to later declarations.
+                FunctionInfo info;
+                info.returnType = child->dataType;
+                for (const ASTNode* parameter : child->SUB_STATEMENTS)
+                    info.parameterTypes.push_back(parameter->dataType);
+                functionTable_.emplace(child->value, move(info));
+                const int savedTopNextSlot = nextSlot_;
+                scopes_.emplace_back();
+                nextSlot_ = 0;
+                currentReturnType_ = child->dataType;
+                for (const ASTNode* parameter : child->SUB_STATEMENTS) {
+                    if (scopes_.back().count(parameter->value))
+                        typeError(parameter, "parameter '" + parameter->value + "' is already declared");
+                    auto [it, inserted] = scopes_.back().emplace(parameter->value,
+                        VariableInfo{parameter->dataType, 0, nextSlot_++});
+                    parameter->localSlot = it->second.slot;
+                }
+                checkNode(child->left);
+                if (child->dataType != ValueType::VOID) {
+                    const ASTNode* body = child->left;
+                    if (!body || body->SUB_STATEMENTS.empty() ||
+                        body->SUB_STATEMENTS.back()->type != NODE_TYPE::RETURN_STMT)
+                        typeError(child, "non-void function '" + child->value + "' must end with return");
+                }
+                const_cast<ASTNode*>(child)->localSlot = nextSlot_;
+                scopes_.pop_back();
+                currentReturnType_ = ValueType::INVALID;
+                nextSlot_ = savedTopNextSlot;
+            }
+            topFrameSize_ = nextSlot_;
             scopes_.pop_back();
             return ValueType::INVALID;
         case NODE_TYPE::BLOCK_STMT:
@@ -98,7 +154,7 @@ ValueType Compiler::checkNode(const ASTNode* node) {
             if (actual == ValueType::INT && node->right && node->right->type == NODE_TYPE::INT_LITERAL &&
                 (node->dataType == ValueType::BYTE || node->dataType == ValueType::SHORT || node->dataType == ValueType::CHAR)) {
                 try {
-                    long long v = std::stoll(node->right->value);
+                    long long v = stoll(node->right->value);
                     constantNarrowing = (node->dataType == ValueType::BYTE && v >= -128 && v <= 127) ||
                                         (node->dataType == ValueType::SHORT && v >= -32768 && v <= 32767) ||
                                         (node->dataType == ValueType::CHAR && v >= 0 && v <= 65535);
@@ -109,17 +165,37 @@ ValueType Compiler::checkNode(const ASTNode* node) {
                 }
             }
             if (!assignable(node->dataType, actual) && !constantNarrowing) 
-                typeError(node, "cannot initialize " + std::string(valueTypeName(node->dataType)) + " with " + valueTypeName(actual));
+                typeError(node, "cannot initialize " + string(valueTypeName(node->dataType)) + " with " + valueTypeName(actual));
             auto [it, inserted] = scopes_.back().emplace(node->value, VariableInfo{node->dataType, 0, nextSlot_++});
             node->localSlot = it->second.slot;
             return ValueType::INVALID;
         }
         case NODE_TYPE::PRINT_STMT: 
-            checkExpr(node->left); 
+            if (checkExpr(node->left) == ValueType::VOID)
+                typeError(node, "cannot print a void expression");
             return ValueType::INVALID;
         case NODE_TYPE::EXPR_STMT: 
             checkExpr(node->left); 
             return ValueType::INVALID;
+        case NODE_TYPE::FUNCTION_DECL:
+            typeError(node, "functions may only be declared at top level");
+            return ValueType::INVALID;
+        case NODE_TYPE::RETURN_STMT: {
+            if (currentReturnType_ == ValueType::INVALID) {
+                typeError(node, "return outside a function");
+            } else if (!node->left) {
+                if (currentReturnType_ != ValueType::VOID)
+                    typeError(node, "non-void function must return a value");
+            } else {
+                ValueType actual = checkExpr(node->left);
+                if (currentReturnType_ == ValueType::VOID)
+                    typeError(node, "void function cannot return a value");
+                else if (!assignable(currentReturnType_, actual))
+                    typeError(node, "cannot return " + string(valueTypeName(actual)) +
+                                    " from " + valueTypeName(currentReturnType_) + " function");
+            }
+            return ValueType::INVALID;
+        }
         case NODE_TYPE::IF_STMT: 
         case NODE_TYPE::WHILE_STMT:
             if (checkExpr(node->left) != ValueType::BOOLEAN) 
@@ -172,6 +248,27 @@ ValueType Compiler::checkExpr(const ASTNode* node) {
             } 
             break;
         }
+        case NODE_TYPE::CALL_EXPR: {
+            auto found = functionTable_.find(node->value);
+            if (found == functionTable_.end()) {
+                typeError(node, "undefined function '" + node->value + "'");
+                break;
+            }
+            const FunctionInfo& function = found->second;
+            if (node->SUB_STATEMENTS.size() != function.parameterTypes.size()) {
+                typeError(node, "function '" + node->value + "' expects " +
+                                to_string(function.parameterTypes.size()) + " argument(s)");
+            }
+            const size_t count = min(node->SUB_STATEMENTS.size(), function.parameterTypes.size());
+            for (size_t i = 0; i < node->SUB_STATEMENTS.size(); ++i) {
+                ValueType actual = checkExpr(node->SUB_STATEMENTS[i]);
+                if (i < count && !assignable(function.parameterTypes[i], actual))
+                    typeError(node->SUB_STATEMENTS[i], "argument " + to_string(i + 1) +
+                                                   " cannot be passed to " + node->value);
+            }
+            result = function.returnType;
+            break;
+        }
         case NODE_TYPE::CAST_EXPR: {
             ValueType from=checkExpr(node->left); 
             if(!numeric(from)||!numeric(node->dataType)) 
@@ -220,18 +317,35 @@ ValueType Compiler::checkExpr(const ASTNode* node) {
             break;
         case NODE_TYPE::BINARY_EXPR: {
             ValueType a=checkExpr(node->left), b=checkExpr(node->right);
-            if(node->op=="+" && (a==ValueType::STRING || b==ValueType::STRING)) 
-                result=ValueType::STRING;
-            else if(node->op=="==" || node->op=="!=") { if(a!=b && !(numeric(a)&&numeric(b))) 
+            const bool scalarOperands = node->left->arrayDimensions == 0 &&
+                                        node->right->arrayDimensions == 0;
+            const bool sameArrayShape = node->left->arrayDimensions > 0 &&
+                                        node->right->arrayDimensions == node->left->arrayDimensions;
+            const bool compatibleBaseTypes = a == b || (numeric(a) && numeric(b));
+
+            if (node->op == "+" && scalarOperands && a == ValueType::STRING && b == ValueType::STRING)
+                result = ValueType::STRING;
+            else if (node->op == "+" && (a == ValueType::STRING || b == ValueType::STRING)) {
+                typeError(node, "string concatenation requires two String operands");
+                result = ValueType::INVALID;
+            }
+            else if(node->op=="==" || node->op=="!=") {
+                const bool comparable = (scalarOperands || sameArrayShape) && compatibleBaseTypes;
+                if (!comparable) {
                     typeError(node,"incompatible equality operands"); result=ValueType::BOOLEAN; }
-            else if(node->op=="<"||node->op=="<="||node->op==">"||node->op==">=") { if(!numeric(a)||!numeric(b)) 
-                    typeError(node,"comparison requires numeric operands"); result=ValueType::BOOLEAN; }
-            else 
-            { 
-                if(!numeric(a)||!numeric(b)) 
-                    typeError(node,"arithmetic requires numeric operands"); 
-                result=promoted(a,b); 
-            } 
+                result = ValueType::BOOLEAN;
+            }
+            else if(node->op=="<"||node->op=="<="||node->op==">"||node->op==">=") {
+                if(!scalarOperands || !numeric(a)||!numeric(b))
+                    typeError(node,"comparison requires numeric operands");
+                result=ValueType::BOOLEAN;
+            }
+            else {
+                if(!scalarOperands || !numeric(a)||!numeric(b))
+                    typeError(node,"arithmetic requires numeric operands");
+                result=promoted(a,b);
+            }
+            node->arrayDimensions = 0;
             break;
         }
         default: 
@@ -244,7 +358,7 @@ ValueType Compiler::checkExpr(const ASTNode* node) {
 
 int Compiler::emit(Instruction instr) {
     int idx = static_cast<int>(code_.size());
-    code_.push_back(std::move(instr));
+    code_.push_back(move(instr));
     return idx;
 }
 
@@ -266,6 +380,7 @@ void Compiler::compileNode(const ASTNode* node) {
             break;
 
         case NODE_TYPE::DECL_STMT:     compileDeclStmt(node);  break;
+        case NODE_TYPE::RETURN_STMT:   compileReturnStmt(node); break;
         case NODE_TYPE::PRINT_STMT:    compilePrintStmt(node); break;
         case NODE_TYPE::EXPR_STMT:     compileExprStmt(node);  break;
         case NODE_TYPE::IF_STMT:       compileIfStmt(node);    break;
@@ -284,6 +399,8 @@ void Compiler::compileNode(const ASTNode* node) {
 //  → compile expr (leaves value on stack) → STORE_LOCAL slot
 void Compiler::compileDeclStmt(const ASTNode* node) {
     compileExpr(node->right);                         // evaluate initialiser
+    if (node->arrayDimensions == 0)
+        emitStorageConversion(node->dataType, node->right->dataType);
     emit(Instruction(OpCode::STORE_LOCAL, static_cast<int64_t>(node->localSlot)));
 }
 
@@ -298,8 +415,32 @@ void Compiler::compilePrintStmt(const ASTNode* node) {
 //  → compile expr → POP  (discard result)
 void Compiler::compileExprStmt(const ASTNode* node) {
     compileExpr(node->left);
-    emit(Instruction(OpCode::POP));
+    if (node->left->dataType != ValueType::VOID)
+        emit(Instruction(OpCode::POP));
 } 
+
+void Compiler::compileFunctionDecl(const ASTNode* node) {
+    FunctionInfo& function = functionTable_.at(node->value);
+    function.entryAddress = currentIndex();
+
+    emit(Instruction(OpCode::ENTER_FRAME, static_cast<int64_t>(node->localSlot)));
+    for (auto it = node->SUB_STATEMENTS.rbegin(); it != node->SUB_STATEMENTS.rend(); ++it)
+        emit(Instruction(OpCode::STORE_LOCAL, static_cast<int64_t>((*it)->localSlot)));
+    const ValueType savedReturnType = currentReturnType_;
+    currentReturnType_ = node->dataType;
+    compileNode(node->left);
+    currentReturnType_ = savedReturnType;
+    if (node->dataType == ValueType::VOID)
+        emit(Instruction(OpCode::RETURN, int64_t(0)));
+}
+
+void Compiler::compileReturnStmt(const ASTNode* node) {
+    if (node->left) {
+        compileExpr(node->left);
+        emitStorageConversion(currentReturnType_, node->left->dataType);
+    }
+    emit(Instruction(OpCode::RETURN, node->left ? int64_t(1) : int64_t(0)));
+}
 
 //  { stmts }
 void Compiler::compileBlock(const ASTNode* node) {
@@ -357,7 +498,7 @@ void Compiler::compileWhileStmt(const ASTNode* node) {
 
 void Compiler::compileExpr(const ASTNode* node) {
     if (!node) {
-        std::cerr << "CompilerError: null expression node.\n";
+        cerr << "CompilerError: null expression node.\n";
         return;
     }
 
@@ -365,24 +506,26 @@ void Compiler::compileExpr(const ASTNode* node) {
         // ── Literals ──────────────────────────────────────────────────────
         case NODE_TYPE::INT_LITERAL:
             emit(Instruction(OpCode::PUSH_INT,
-                             static_cast<int64_t>(std::stoll(node->value))));
+                             static_cast<int64_t>(stoll(node->value))));
             break;
 
         case NODE_TYPE::LONG_LITERAL:
             emit(Instruction(OpCode::PUSH_INT,
-                             static_cast<int64_t>(std::stoll(node->value))));
+                             static_cast<int64_t>(stoll(node->value))));
             break;
 
         case NODE_TYPE::FLOAT_LITERAL:
-            emit(Instruction(OpCode::PUSH_FLOAT, std::stod(node->value)));
+            emit(Instruction(OpCode::PUSH_FLOAT, stod(node->value)));
             break;
 
         case NODE_TYPE::DOUBLE_LITERAL:
-            emit(Instruction(OpCode::PUSH_FLOAT, std::stod(node->value)));
+            emit(Instruction(OpCode::PUSH_FLOAT, stod(node->value)));
             break;
 
         case NODE_TYPE::STRING_LITERAL:
-            emit(Instruction(OpCode::PUSH_STRING, node->value));
+            code_.stringConstants.push_back(node->value);
+            emit(Instruction(OpCode::PUSH_STRING,
+                             static_cast<int64_t>(code_.stringConstants.size() - 1)));
             break;
 
         case NODE_TYPE::CHAR_LITERAL:
@@ -400,9 +543,23 @@ void Compiler::compileExpr(const ASTNode* node) {
             emit(Instruction(OpCode::LOAD_LOCAL, static_cast<int64_t>(node->localSlot)));
             break;
 
+        case NODE_TYPE::CALL_EXPR: {
+            const FunctionInfo& function = functionTable_.at(node->value);
+            for (size_t i = 0; i < node->SUB_STATEMENTS.size(); ++i) {
+                const ASTNode* argument = node->SUB_STATEMENTS[i];
+                compileExpr(argument);
+                if (i < function.parameterTypes.size() && argument->arrayDimensions == 0)
+                    emitStorageConversion(function.parameterTypes[i], argument->dataType);
+            }
+            emit(Instruction(OpCode::CALL, static_cast<int64_t>(function.entryAddress)));
+            break;
+        }
+
         // ── Input expression ──────────────────────────────────────────────
         case NODE_TYPE::INPUT_EXPR:
-            emit(Instruction(OpCode::INPUT, node->value)); // value = prompt
+            code_.stringConstants.push_back(node->value);
+            emit(Instruction(OpCode::INPUT,
+                             static_cast<int64_t>(code_.stringConstants.size() - 1)));
             break;
 
         case NODE_TYPE::ARRAY_LITERAL:
@@ -413,6 +570,7 @@ void Compiler::compileExpr(const ASTNode* node) {
         // ── Assignment expression  id = expr ─────────────────────────────
         case NODE_TYPE::ASSIGN_EXPR:
             compileExpr(node->right);
+            emitStorageConversion(node->dataType, node->right->dataType);
             emit(Instruction(OpCode::STORE_LOCAL, static_cast<int64_t>(node->localSlot)));
             // Assignment leaves a value on the stack (it's an expression)
             emit(Instruction(OpCode::LOAD_LOCAL, static_cast<int64_t>(node->localSlot)));
@@ -429,22 +587,13 @@ void Compiler::compileExpr(const ASTNode* node) {
             break;
 
         default:
-            std::cerr << "CompilerError: unexpected expression node type "
+            cerr << "CompilerError: unexpected expression node type "
                       << static_cast<int>(node->type) << ".\n";
             break;
     }
 }
 
 void Compiler::compileBinaryExpr(const ASTNode* node) {
-    if (node->op == "=" && node->left &&
-        node->left->type == NODE_TYPE::IDENTIFIER)
-    {
-        compileExpr(node->right);
-        emit(Instruction(OpCode::STORE_LOCAL, static_cast<int64_t>(node->left->localSlot)));
-        emit(Instruction(OpCode::LOAD_LOCAL, static_cast<int64_t>(node->left->localSlot)));
-        return;
-    }
-
     const bool numericOperands = node->left && node->right &&
         numeric(node->left->dataType) && numeric(node->right->dataType);
 
@@ -459,7 +608,7 @@ void Compiler::compileBinaryExpr(const ASTNode* node) {
     if (numericOperands && node->right->dataType == ValueType::CHAR)
         emit(Instruction(OpCode::CONVERT, static_cast<int64_t>(ValueType::INT)));
 
-    const std::string& op = node->op;
+    const string& op = node->op;
 
     if      (op == "+")  emit(Instruction(OpCode::ADD));
     else if (op == "-")  emit(Instruction(OpCode::SUB));
@@ -473,45 +622,51 @@ void Compiler::compileBinaryExpr(const ASTNode* node) {
     else if (op == ">")  emit(Instruction(OpCode::CMP_GT));
     else if (op == ">=") emit(Instruction(OpCode::CMP_GE));
     else {
-        std::cerr << "CompilerError: unknown binary operator '" << op << "'.\n";
+        cerr << "CompilerError: unknown binary operator '" << op << "'.\n";
     }
 }
 
 void Compiler::disassemble(const Bytecode& code) {
-    std::cout << "\n=== BYTECODE DISASSEMBLY ===\n";
+    cout << "\n=== BYTECODE DISASSEMBLY ===\n";
     for (int i = 0; i < static_cast<int>(code.size()); ++i) 
     {
         const Instruction& instr = code[i];
-        std::cout << std::setw(4) << i << "  " << std::left
-                  << std::setw(16) << opCodeName(instr.op);
+        cout << setw(4) << i << "  " << left
+                  << setw(16) << opCodeName(instr.op);
 
         // Print operand if meaningful
-        if (std::holds_alternative<int64_t>(instr.operand)) 
+        if (holds_alternative<int64_t>(instr.operand)) 
         {
-            int64_t v = std::get<int64_t>(instr.operand);
+            int64_t v = get<int64_t>(instr.operand);
             if (v != 0 || instr.op == OpCode::PUSH_INT ||
                           instr.op == OpCode::PUSH_BOOL ||
+                          instr.op == OpCode::PUSH_STRING ||
                           instr.op == OpCode::JUMP      ||
                           instr.op == OpCode::JUMP_IF_FALSE ||
+                          instr.op == OpCode::CALL ||
+                          instr.op == OpCode::RETURN ||
+                          instr.op == OpCode::ENTER_FRAME ||
                           instr.op == OpCode::LOAD_LOCAL ||
-                          instr.op == OpCode::STORE_LOCAL)
-                std::cout << v;
-        } 
-        else if (std::holds_alternative<double>(instr.operand)) 
-        {
-            std::cout << std::get<double>(instr.operand);
-        } 
-        else if (std::holds_alternative<char16_t>(instr.operand)) 
-        {
-            std::cout << "'" << static_cast<char>(std::get<char16_t>(instr.operand)) << "'";
-        } 
-        else if (std::holds_alternative<std::string>(instr.operand)) 
-        {
-            const std::string& s = std::get<std::string>(instr.operand);
-            if (!s.empty()) std::cout << '"' << s << '"';
-        }
+                          instr.op == OpCode::STORE_LOCAL ||
+                          instr.op == OpCode::INPUT)
+                cout << v;
 
-        std::cout << "\n";
+            if (instr.op == OpCode::PUSH_STRING || instr.op == OpCode::INPUT) {
+                if (v >= 0 && static_cast<size_t>(v) < code.stringConstants.size())
+                    cout << "   ; \"" << code.stringConstants[static_cast<size_t>(v)] << '\"';
+                else
+                    cout << "   ; <invalid string constant>";
+            }
+        } 
+        else if (holds_alternative<double>(instr.operand)) 
+        {
+            cout << get<double>(instr.operand);
+        } 
+        else if (holds_alternative<char16_t>(instr.operand)) 
+        {
+            cout << "'" << static_cast<char>(get<char16_t>(instr.operand)) << "'";
+        } 
+        cout << "\n";
     }
-    std::cout << "============================\n\n";
+    cout << "============================\n\n";
 }

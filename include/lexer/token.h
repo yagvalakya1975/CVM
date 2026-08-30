@@ -2,6 +2,8 @@
 #include <string>
 #include <utility>
 
+using namespace std;
+
 enum class TokenType {
     LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE, LEFT_BRACKET, RIGHT_BRACKET,
     COMMA, SEMICOLON,
@@ -11,20 +13,19 @@ enum class TokenType {
     IDENTIFIER, INT_LITERAL, LONG_LITERAL, FLOAT_LITERAL, DOUBLE_LITERAL,
     CHAR_LITERAL, STRING_LITERAL,
     KW_BYTE, KW_SHORT, KW_INT, KW_LONG, KW_FLOAT, KW_DOUBLE, KW_CHAR,
-    KW_STRING, KW_BOOLEAN,
-    KW_IF, KW_ELSE, KW_WHILE, KW_INPUT, KW_PRINT, KW_TRUE, KW_FALSE,
-    KW_LEGACY_STRING, KW_LEGACY_BOOL,
+    KW_STRING, KW_BOOLEAN, KW_VOID,
+    KW_IF, KW_ELSE, KW_WHILE, KW_INPUT, KW_PRINT, KW_RETURN, KW_TRUE, KW_FALSE,
     END_OF_FILE
 };
 
 struct Token {
     TokenType type;
-    std::string lexeme;
+    string lexeme;
     int line;
-    Token(TokenType t, std::string l, int n) : type(t), lexeme(std::move(l)), line(n) {}
+    Token(TokenType t, string l, int n) : type(t), lexeme(move(l)), line(n) {}
 };
 
-inline std::string tokenTypeToString(TokenType type) {
+inline string tokenTypeToString(TokenType type) {
     switch (type) {
         case TokenType::LEFT_PAREN: return "("; 
         case TokenType::RIGHT_PAREN: return ")";
@@ -62,15 +63,15 @@ inline std::string tokenTypeToString(TokenType type) {
         case TokenType::KW_CHAR: return "char"; 
         case TokenType::KW_STRING: return "String";
         case TokenType::KW_BOOLEAN: return "boolean"; 
+        case TokenType::KW_VOID: return "void";
         case TokenType::KW_IF: return "if";
         case TokenType::KW_ELSE: return "else"; 
         case TokenType::KW_WHILE: return "while";
         case TokenType::KW_INPUT: return "input"; 
         case TokenType::KW_PRINT: return "print";
+        case TokenType::KW_RETURN: return "return";
         case TokenType::KW_TRUE: return "true"; 
         case TokenType::KW_FALSE: return "false";
-        case TokenType::KW_LEGACY_STRING: return "legacy 'string'";
-        case TokenType::KW_LEGACY_BOOL: return "legacy 'bool'";
         case TokenType::END_OF_FILE: return "EOF";
     }
     return "UNKNOWN";

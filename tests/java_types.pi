@@ -9,6 +9,6 @@ String label = "answer=";
 boolean ok = d > 7.0;
 int truncated = (int) 3.9;
 if (ok) {
-    print(label + 43);
+    print(label + "43");
     print(truncated);
 }

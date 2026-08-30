@@ -1,0 +1,26 @@
+int takeInt(int value) {
+    return value;
+}
+
+char takeChar(char value) {
+    return value;
+}
+
+print((long) 3.9);
+print((double) 3);
+print((char) 65);
+print((byte) 3.9);
+print((short) 3.9);
+print((int) 3.9);
+
+char c = 65;
+print(c);
+int x = c;
+print(x);
+double d = 3;
+print(d);
+
+c = (char) 66;
+print(c);
+print(takeInt(c));
+print(takeChar((char) 66));

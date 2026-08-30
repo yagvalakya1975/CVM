@@ -4,14 +4,16 @@
 #include <variant>
 #include <vector>
 
+using namespace std;
+
 // Bytecode operands describe encoded instruction data, not VM runtime values.
-using Operand = std::variant<int64_t, double, char16_t, std::string>;
+using Operand = variant<int64_t, double, char16_t>;
 
 
 enum class OpCode : uint8_t {
     PUSH_INT,       // operand: int constant
     PUSH_FLOAT,     // operand: double  constant
-    PUSH_STRING,    // operand: string  constant
+    PUSH_STRING,    // operand: string constant pool index
     PUSH_CHAR,      // operand: string  constant (single char)
     PUSH_BOOL,      // operand: int  0=false 1=true
     BUILD_ARRAY,    // operand: element count
@@ -30,14 +32,17 @@ enum class OpCode : uint8_t {
     CMP_GE,
     JUMP,           // operand: absolute instruction index
     JUMP_IF_FALSE,  // operand: absolute instruction index; pops condition
+    CALL,           // operand: absolute instruction index of function entry
+    RETURN,         // operand: 1 if returning a value, 0 otherwise
+    ENTER_FRAME,    // operand: local slot count for this frame
     PRINT,          // pop top of stack, print it
-    INPUT,          // operand: prompt string; push string result
+    INPUT,          // operand: prompt string constant pool index; push string result
     CONVERT,        // operand: ValueType numeric code; convert top stack value
     POP,            // discard top of stack
     HALT
 };
 
-inline std::string opCodeName(OpCode op) {
+inline string opCodeName(OpCode op) {
     switch (op) {
         case OpCode::PUSH_INT:      return "PUSH_INT";
         case OpCode::PUSH_FLOAT:    return "PUSH_FLOAT";
@@ -60,6 +65,9 @@ inline std::string opCodeName(OpCode op) {
         case OpCode::CMP_GE:        return "CMP_GE";
         case OpCode::JUMP:          return "JUMP";
         case OpCode::JUMP_IF_FALSE: return "JUMP_IF_FALSE";
+        case OpCode::CALL:          return "CALL";
+        case OpCode::RETURN:        return "RETURN";
+        case OpCode::ENTER_FRAME:   return "ENTER_FRAME";
         case OpCode::PRINT:         return "PRINT";
         case OpCode::INPUT:         return "INPUT";
         case OpCode::CONVERT:       return "CONVERT";
@@ -77,7 +85,25 @@ struct Instruction {
     Instruction(OpCode o, int64_t v)              : op(o), operand(v) {}
     Instruction(OpCode o, double  v)              : op(o), operand(v) {}
     Instruction(OpCode o, char16_t v)             : op(o), operand(v) {}
-    Instruction(OpCode o, std::string v)          : op(o), operand(std::move(v)) {}
 };
 
-using Bytecode = std::vector<Instruction>;
+struct Bytecode {
+    vector<Instruction> instructions;
+    vector<string> stringConstants;
+
+    Bytecode() = default;
+    Bytecode(initializer_list<Instruction> initialInstructions)
+        : instructions(initialInstructions) {}
+
+    bool empty() const { return instructions.empty(); }
+    size_t size() const { return instructions.size(); }
+    void clear() { instructions.clear(); stringConstants.clear(); }
+    void push_back(Instruction instruction) { instructions.push_back(move(instruction)); }
+
+    Instruction& operator[](size_t index) { return instructions[index]; }
+    const Instruction& operator[](size_t index) const { return instructions[index]; }
+    auto begin() { return instructions.begin(); }
+    auto end() { return instructions.end(); }
+    auto begin() const { return instructions.begin(); }
+    auto end() const { return instructions.end(); }
+};

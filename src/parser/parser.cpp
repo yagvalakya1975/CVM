@@ -1,27 +1,35 @@
 #include "parser/parser.h"
 #include <iostream>
 
-Parser::Parser(std::vector<Token>& tokens) : parserTokens(tokens), limit(static_cast<int>(tokens.size())) {
+using namespace std;
+
+Parser::Parser(vector<Token>& tokens) : parserTokens(tokens), limit(static_cast<int>(tokens.size())) {
     if (limit) current = parserTokens[0];
 }
+
 bool Parser::check(TokenType t) const { return current.type == t; }
+
 Token* Parser::proceed(TokenType expected) {
     if (!check(expected)) 
     { 
         hadError_ = true; 
-        std::cerr << "ParserError line " << current.line << ": expected " << tokenTypeToString(expected) << ", found " << tokenTypeToString(current.type) << ".\n"; 
+        cerr << "ParserError line " << current.line << ": expected " << tokenTypeToString(expected) << ", found " << tokenTypeToString(current.type) << ".\n"; 
         return nullptr; 
     }
     Token* out = &parserTokens[index];
     current = ++index < limit ? parserTokens[index] : Token(TokenType::END_OF_FILE, "", out->line);
     return out;
 }
+
 bool Parser::isTypeKeyword() const {
     return current.type >= TokenType::KW_BYTE && current.type <= TokenType::KW_BOOLEAN;
 }
+
 ValueType Parser::parseType() {
-    TokenType t = current.type; proceed(t);
-    switch (t) {
+    TokenType t = current.type; 
+    proceed(t);
+    switch (t)
+    {
         case TokenType::KW_BYTE: return ValueType::BYTE; 
         case TokenType::KW_SHORT: return ValueType::SHORT;
         case TokenType::KW_INT: return ValueType::INT;
@@ -34,7 +42,9 @@ ValueType Parser::parseType() {
         default: return ValueType::INVALID;
     }
 }
-ASTNode* Parser::parse() {
+
+ASTNode* Parser::parse() 
+{
     auto* root = new ASTNode(NODE_TYPE::ROOT);
     while (!check(TokenType::END_OF_FILE)) 
     {
@@ -45,47 +55,105 @@ ASTNode* Parser::parse() {
             while (!check(TokenType::SEMICOLON) && !check(TokenType::RIGHT_BRACE) && !check(TokenType::END_OF_FILE)) 
                 proceed(current.type); 
             if (check(TokenType::SEMICOLON)) 
-                proceed(TokenType::SEMICOLON); }
+                proceed(TokenType::SEMICOLON); 
+        }
     }
     return root;
 }
+
 ASTNode* Parser::parseStatement() {
-    if (check(TokenType::KW_LEGACY_STRING) || check(TokenType::KW_LEGACY_BOOL)) 
-    { 
-        hadError_ = true; 
-        std::cerr << "ParserError line " << current.line << ": legacy type is not supported.\n"; 
-        return nullptr; 
-    }
     if (check(TokenType::LEFT_BRACE)) 
         return parseBlock(); 
     if (check(TokenType::KW_IF)) 
         return parseIfStmt();
     if (check(TokenType::KW_WHILE)) 
         return parseWhileStmt(); 
-    if (isTypeKeyword()) 
+    if (isTypeKeyword() || check(TokenType::KW_VOID))
         return parseDeclStmt();
     if (check(TokenType::KW_PRINT)) 
         return parsePrintStmt(); 
+    if (check(TokenType::KW_RETURN))
+        return parseReturnStmt();
     return parseExprStmt();
 }
+
 ASTNode* Parser::parseDeclStmt() {
-    int line = current.line; ValueType type = parseType(); int dimensions = 0;
-    while (check(TokenType::LEFT_BRACKET)) {
+    int line = current.line;
+    ValueType type = ValueType::INVALID;
+    if (check(TokenType::KW_VOID)) 
+    { 
+        proceed(TokenType::KW_VOID); 
+        type = ValueType::VOID; 
+    }
+    else type = parseType();
+    int dimensions = 0;
+    while (check(TokenType::LEFT_BRACKET)) 
+    {
         proceed(TokenType::LEFT_BRACKET);
         if (!proceed(TokenType::RIGHT_BRACKET)) return nullptr;
         ++dimensions;
     }
+
     Token* name = proceed(TokenType::IDENTIFIER);
-    if (!name || !proceed(TokenType::EQUAL)) 
-        return nullptr; 
+    if (!name) return nullptr;
+    if (check(TokenType::LEFT_PAREN)) {
+        if (dimensions != 0) {
+            hadError_ = true;
+            cerr << "ParserError line " << line << ": function return type cannot be an array.\n";
+            return nullptr;
+        }
+        proceed(TokenType::LEFT_PAREN);
+        auto* function = new ASTNode(NODE_TYPE::FUNCTION_DECL, name->lexeme, line);
+        function->dataType = type;
+        if (!check(TokenType::RIGHT_PAREN)) {
+            while (true) {
+                if (!isTypeKeyword()) {
+                    hadError_ = true;
+                    cerr << "ParserError line " << current.line << ": expected parameter type.\n";
+                    return nullptr;
+                }
+                ValueType parameterType = parseType();
+                Token* parameterName = proceed(TokenType::IDENTIFIER);
+                if (!parameterName) return nullptr;
+                auto* parameter = new ASTNode(NODE_TYPE::DECL_STMT, parameterName->lexeme, parameterName->line);
+                parameter->dataType = parameterType;
+                function->SUB_STATEMENTS.push_back(parameter);
+                if (!check(TokenType::COMMA)) break;
+                proceed(TokenType::COMMA);
+            }
+        }
+        if (!proceed(TokenType::RIGHT_PAREN)) return nullptr;
+        function->left = parseBlock();
+        return function;
+    }
+
+    if (type == ValueType::VOID) {
+        hadError_ = true;
+        cerr << "ParserError line " << line << ": void is only valid as a function return type.\n";
+        return nullptr;
+    }
+
+    if (!proceed(TokenType::EQUAL)) return nullptr;
     ASTNode* init = parseCondition();
     if (!init || !proceed(TokenType::SEMICOLON)) return nullptr;
-    auto* n = new ASTNode(NODE_TYPE::DECL_STMT, name->lexeme, line); n->dataType = type; n->arrayDimensions = dimensions;
+    auto* n = new ASTNode(NODE_TYPE::DECL_STMT, name->lexeme, line); 
+    n->dataType = type; 
+    n->arrayDimensions = dimensions;
     n->right = init; 
     return n;
 }
+ASTNode* Parser::parseReturnStmt() {
+    int line = current.line;
+    proceed(TokenType::KW_RETURN);
+    auto* node = new ASTNode(NODE_TYPE::RETURN_STMT, "", line);
+    if (!check(TokenType::SEMICOLON)) node->left = parseCondition();
+    if (!proceed(TokenType::SEMICOLON)) return nullptr;
+    return node;
+}
 ASTNode* Parser::parseBlock() {
-    int line = current.line; proceed(TokenType::LEFT_BRACE); auto* b = new ASTNode(NODE_TYPE::BLOCK_STMT, "", line);
+    int line = current.line; 
+    proceed(TokenType::LEFT_BRACE); 
+    auto* b = new ASTNode(NODE_TYPE::BLOCK_STMT, "", line);
     while (!check(TokenType::RIGHT_BRACE) && !check(TokenType::END_OF_FILE)) 
     { 
         if (ASTNode* s = parseStatement()) b->SUB_STATEMENTS.push_back(s); 
@@ -113,6 +181,7 @@ ASTNode* Parser::parseIfStmt() {
     n->alternate=no; 
     return n;
 }
+
 ASTNode* Parser::parseWhileStmt() {
     int line=current.line; 
     proceed(TokenType::KW_WHILE); 
@@ -125,6 +194,7 @@ ASTNode* Parser::parseWhileStmt() {
     n->right=body; 
     return n;
 }
+
 ASTNode* Parser::parsePrintStmt() 
 { 
     int line=current.line; 
@@ -136,6 +206,7 @@ ASTNode* Parser::parsePrintStmt()
     n->left=x; 
     return n; 
 }
+
 ASTNode* Parser::parseExprStmt() {
     ASTNode* e=parseCondition();
     if (!e) return nullptr;
@@ -149,6 +220,7 @@ ASTNode* Parser::parseExprStmt() {
         {
             assignment = new ASTNode(NODE_TYPE::ASSIGN_EXPR, e->value, e->line);
             assignment->right = rhs;
+            delete e;
         } 
         else if (e->type == NODE_TYPE::ARRAY_ACCESS) 
         {
@@ -159,7 +231,7 @@ ASTNode* Parser::parseExprStmt() {
         else 
         {
             hadError_ = true;
-            std::cerr << "ParserError line " << e->line << ": invalid assignment target.\n";
+            cerr << "ParserError line " << e->line << ": invalid assignment target.\n";
             return nullptr;
         }
         auto* n = new ASTNode(NODE_TYPE::EXPR_STMT); 
@@ -171,7 +243,9 @@ ASTNode* Parser::parseExprStmt() {
     n->left=e; 
     return n;
 }
-ASTNode* Parser::parseCondition() {
+
+ASTNode* Parser::parseCondition() 
+{
     ASTNode* left=parseRelational(); 
     while(check(TokenType::EQUAL_EQUAL)||check(TokenType::BANG_EQUAL)) 
     { 
@@ -185,6 +259,7 @@ ASTNode* Parser::parseCondition() {
     } 
     return left;
 }
+
 ASTNode* Parser::parseRelational() {
     ASTNode* left=parseExpression(); 
     while(check(TokenType::LESS)||check(TokenType::LESS_EQUAL)||check(TokenType::GREATER)||check(TokenType::GREATER_EQUAL)) 
@@ -199,6 +274,7 @@ ASTNode* Parser::parseRelational() {
     } 
     return left;
 }
+
 ASTNode* Parser::parseExpression() 
 { 
     ASTNode* left=parseTerm(); 
@@ -214,6 +290,7 @@ ASTNode* Parser::parseExpression()
     } 
     return left; 
 }
+
 ASTNode* Parser::parseTerm() 
 { 
     ASTNode* left=parseFactor(); 
@@ -229,6 +306,7 @@ ASTNode* Parser::parseTerm()
     } 
     return left; 
 }
+
 ASTNode* Parser::parseFactor() 
 {
     Token tok=current;
@@ -247,9 +325,27 @@ ASTNode* Parser::parseFactor()
         case TokenType::CHAR_LITERAL:return literal(NODE_TYPE::CHAR_LITERAL);
         case TokenType::KW_TRUE: 
         case TokenType::KW_FALSE: return literal(NODE_TYPE::BOOL_LITERAL);
-        case TokenType::IDENTIFIER: {
+        case TokenType::IDENTIFIER: 
+        {
             ASTNode* base = literal(NODE_TYPE::IDENTIFIER);
-            while (check(TokenType::LEFT_BRACKET)) {
+            if (check(TokenType::LEFT_PAREN)) 
+            {
+                proceed(TokenType::LEFT_PAREN);
+                auto* call = new ASTNode(NODE_TYPE::CALL_EXPR, base->value, base->line);
+                if (!check(TokenType::RIGHT_PAREN)) {
+                    while (true) {
+                        ASTNode* argument = parseCondition();
+                        if (!argument) return nullptr;
+                        call->SUB_STATEMENTS.push_back(argument);
+                        if (!check(TokenType::COMMA)) break;
+                        proceed(TokenType::COMMA);
+                    }
+                }
+                if (!proceed(TokenType::RIGHT_PAREN)) return nullptr;
+                return call;
+            }
+            while (check(TokenType::LEFT_BRACKET)) 
+            {
                 proceed(TokenType::LEFT_BRACKET);
                 ASTNode* subscript = parseCondition();
                 if (!subscript || !proceed(TokenType::RIGHT_BRACKET)) return nullptr;
@@ -275,24 +371,24 @@ ASTNode* Parser::parseFactor()
             if (isTypeKeyword()) 
             { 
                 ValueType t=parseType(); 
-                if(!proceed(TokenType::RIGHT_PAREN)) 
-                    return nullptr; 
+                if(!proceed(TokenType::RIGHT_PAREN)) return nullptr;
                 auto* n=new ASTNode(NODE_TYPE::CAST_EXPR,"",tok.line); 
-                n->dataType=t; 
-                n->left=parseFactor(); 
-                return n; 
+                n->dataType=t;
+                n->left=parseFactor();
+                return n;
             }
             ASTNode* e=parseCondition(); 
-            if(!proceed(TokenType::RIGHT_PAREN)) return nullptr; 
+            if(!proceed(TokenType::RIGHT_PAREN)) return nullptr;
             return e;
         }
-        default: hadError_ = true; 
-        std::cerr << "ParserError line " << tok.line << ": expected expression.\n"; 
+        default: hadError_ = true;
+        cerr << "ParserError line " << tok.line << ": expected expression.\n";
         return nullptr;
     }
 }
 
-ASTNode* Parser::parseArrayLiteral() {
+ASTNode* Parser::parseArrayLiteral() 
+{
     int line = current.line;
     if (!proceed(TokenType::LEFT_BRACKET)) return nullptr;
     auto* array = new ASTNode(NODE_TYPE::ARRAY_LITERAL, "", line);
@@ -308,7 +404,7 @@ ASTNode* Parser::parseArrayLiteral() {
             if (check(TokenType::RIGHT_BRACKET)) 
             {
                 hadError_ = true;
-                std::cerr << "ParserError line " << current.line << ": trailing comma in array literal.\n";
+                cerr << "ParserError line " << current.line << ": trailing comma in array literal.\n";
                 return nullptr;
             }
         }
@@ -316,17 +412,18 @@ ASTNode* Parser::parseArrayLiteral() {
     if (!proceed(TokenType::RIGHT_BRACKET)) return nullptr;
     return array;
 }
+
 void Parser::printAST(const ASTNode* n,int depth) 
 { 
     if(!n)return; 
-    std::cout<<std::string(depth*2,' ')<<nodeTypeName(n->type); 
+    cout<<string(depth*2,' ')<<nodeTypeName(n->type); 
     if(!n->value.empty())
-        std::cout<<" "<<n->value; 
+        cout<<" "<<n->value; 
     if(n->dataType!=ValueType::INVALID)
-        std::cout<<" :"<<valueTypeName(n->dataType); 
+        cout<<" :"<<valueTypeName(n->dataType); 
     for(int i=0;i<n->arrayDimensions;++i)
-        std::cout<<"[]"; 
-    std::cout<<"\n"; 
+        cout<<"[]"; 
+    cout<<"\n"; 
     printAST(n->left,depth+1); 
     printAST(n->right,depth+1); 
     printAST(n->alternate,depth+1); 

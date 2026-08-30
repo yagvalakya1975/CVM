@@ -1,0 +1,4 @@
+int one(int value) {
+    return value;
+}
+print(one("wrong"));

@@ -1,45 +1,47 @@
-#include "../../include/vm/vm.h"
+#include "vm/vm.h"
+#include "vm/vm_error.h"
+#include "parser/parser.h"
 #include <cmath>
 #include <iostream>
-#include <stdexcept>
 
-void VM::push(Value v) { stack_.push_back(std::move(v)); }
+using namespace std;
+
+void VM::push(Value v) { stack_.push_back(move(v)); }
 Value VM::pop() {
-    if (stack_.empty()) throw std::runtime_error("VMError: stack underflow");
-    Value v = std::move(stack_.back()); 
+    if (stack_.empty()) throw VMError(VMErrorKind::StackUnderflow, "stack underflow");
+    Value v = move(stack_.back()); 
     stack_.pop_back(); 
     return v;
 }
 const Value& VM::peek() const {
-    if (stack_.empty()) throw std::runtime_error("VMError: peek on empty stack");
+    if (stack_.empty()) throw VMError(VMErrorKind::StackUnderflow, "peek on empty stack");
     return stack_.back();
 }
 
-std::string VM::valueToString(const Value& v) {
+string VM::valueToString(const Value& v) {
     switch (v.tag()) {
-        case ValueTag::INT: return std::to_string(v.asInt());
+        case ValueTag::INT: return to_string(v.asInt());
         case ValueTag::FLOAT: {
-            std::string text = std::to_string(v.asFloat());
-            text.erase(text.find_last_not_of('0') + 1, std::string::npos);
+            string text = to_string(v.asFloat());
+            text.erase(text.find_last_not_of('0') + 1, string::npos);
             if (text.back() == '.') text += '0';
             return text;
         }
         case ValueTag::BOOL: return v.asBool() ? "true" : "false";
-        case ValueTag::CHAR: return std::string(1, static_cast<char>(v.asChar()));
+        case ValueTag::CHAR: return string(1, static_cast<char>(v.asChar()));
         case ValueTag::STRING: return v.asString();
         case ValueTag::ARRAY: {
             const ArrayPtr& array = v.asArray();
-            if (!array) throw std::runtime_error("VMError: null array reference");
-            std::string result = "[";
+            if (!array) throw VMError(VMErrorKind::InvalidOperand, "null array reference");
+            string result = "[";
             for (size_t i = 0; i < array->elements.size(); ++i) {
                 if (i > 0) result += ", ";
                 result += valueToString(array->elements[i]);
             }
             return result + "]";
         }
-        case ValueTag::REFERENCE: throw std::runtime_error("VMError: unsupported generic reference value");
     }
-    throw std::runtime_error("VMError: unknown value tag");
+    throw VMError(VMErrorKind::InvalidOperand, "unknown value tag");
 }
 
 bool VM::isTruthy(const Value& v) { return v.asBool(); }
@@ -51,26 +53,41 @@ bool isIntegralNumeric(const Value& value) {
 int64_t integralValue(const Value& value) {
     if (value.tag() == ValueTag::INT) return value.asInt();
     if (value.tag() == ValueTag::CHAR) return static_cast<int64_t>(value.asChar());
-    throw std::runtime_error(std::string("VMError: expected numeric value, got ") + valueTagName(value.tag()));
+    throw VMError(VMErrorKind::TypeMismatch, string("expected numeric value, got ") + valueTagName(value.tag()));
 }
 double numericValue(const Value& value) {
     switch (value.tag()) {
         case ValueTag::INT: return static_cast<double>(value.asInt());
         case ValueTag::FLOAT: return value.asFloat();
         case ValueTag::CHAR: return static_cast<double>(value.asChar());
-        default: throw std::runtime_error(std::string("VMError: expected numeric value, got ") + valueTagName(value.tag()));
+        default: throw VMError(VMErrorKind::TypeMismatch, string("expected numeric value, got ") + valueTagName(value.tag()));
     }
 }
 bool numericPair(const Value& lhs, const Value& rhs) { return lhs.isNumeric() && rhs.isNumeric(); }
-[[noreturn]] void invalidOperands(const std::string& op, const Value& lhs, const Value& rhs) {
-    throw std::runtime_error("VMError: operator '" + op + "' does not support " +
+[[noreturn]] void invalidOperands(const string& op, const Value& lhs, const Value& rhs) {
+    throw VMError(VMErrorKind::TypeMismatch, "operator '" + op + "' does not support " +
                              valueTagName(lhs.tag()) + " and " + valueTagName(rhs.tag()));
+}
+
+template <typename T>
+const T& operandAs(const Instruction& instr) {
+    if (const T* operand = get_if<T>(&instr.operand)) return *operand;
+    throw VMError(VMErrorKind::MalformedBytecode,
+                  "malformed operand for opcode " + opCodeName(instr.op));
+}
+
+int checkedJumpTarget(const Instruction& instr, size_t codeSize) {
+    const int64_t target = operandAs<int64_t>(instr);
+    if (target < 0 || static_cast<uint64_t>(target) >= codeSize)
+        throw VMError(VMErrorKind::InvalidOperand,
+                      "invalid jump target " + to_string(target));
+    return static_cast<int>(target);
 }
 }
 
-Value VM::applyBinOp(const std::string& op, Value lhs, Value rhs) {
-    if (op == "+" && (lhs.tag() == ValueTag::STRING || rhs.tag() == ValueTag::STRING))
-        return Value::string(valueToString(lhs) + valueToString(rhs));
+Value VM::applyBinOp(const string& op, Value lhs, Value rhs) {
+    if (op == "+" && lhs.tag() == ValueTag::STRING && rhs.tag() == ValueTag::STRING)
+        return Value::string(lhs.asString() + rhs.asString());
 
     if (op == "==" || op == "!=") {
         bool equal = false;
@@ -96,12 +113,12 @@ Value VM::applyBinOp(const std::string& op, Value lhs, Value rhs) {
         if (op == "*") return Value::integer(a * b);
         if (op == "/") 
         { 
-            if (b == 0) throw std::runtime_error("VMError: division by zero"); 
+            if (b == 0) throw VMError(VMErrorKind::DivisionByZero, "division by zero"); 
             return Value::integer(a / b); 
         }
         if (op == "%") 
         { 
-            if (b == 0) throw std::runtime_error("VMError: modulo by zero"); 
+            if (b == 0) throw VMError(VMErrorKind::DivisionByZero, "modulo by zero"); 
             return Value::integer(a % b); 
         }
     }
@@ -110,15 +127,15 @@ Value VM::applyBinOp(const std::string& op, Value lhs, Value rhs) {
     if (op == "-") return Value::floating(a - b);
     if (op == "*") return Value::floating(a * b);
     if (op == "/") { if (b == 0.0) 
-        throw std::runtime_error("VMError: division by zero"); 
+        throw VMError(VMErrorKind::DivisionByZero, "division by zero"); 
     return Value::floating(a / b); }
     if (op == "%") { if (b == 0.0) 
-        throw std::runtime_error("VMError: modulo by zero"); 
-    return Value::floating(std::fmod(a, b)); }
-    throw std::runtime_error("VMError: unknown operator '" + op + "'");
+        throw VMError(VMErrorKind::DivisionByZero, "modulo by zero"); 
+    return Value::floating(fmod(a, b)); }
+    throw VMError(VMErrorKind::TypeMismatch, "unknown operator '" + op + "'");
 }
 
-static std::string opCodeToOp(OpCode op) {
+static string opCodeToOp(OpCode op) {
     switch (op) {
         case OpCode::ADD: return "+"; 
         case OpCode::SUB: return "-"; 
@@ -139,38 +156,49 @@ int VM::run(const Bytecode& code) {
     stack_.clear(); 
     locals_.clear(); 
     initializedLocals_.clear();
+    frames_.clear();
+    currentBase_ = 0;
+    currentFrameSize_ = 0;
     int ip = 0;
-    try {
-        while (ip < static_cast<int>(code.size())) {
+    while (ip < static_cast<int>(code.size())) {
             const Instruction& instr = code[ip];
             switch (instr.op) {
-                case OpCode::PUSH_INT: push(Value::integer(std::get<int64_t>(instr.operand))); break;
-                case OpCode::PUSH_FLOAT: push(Value::floating(std::get<double>(instr.operand))); break;
-                case OpCode::PUSH_STRING: push(Value::string(std::get<std::string>(instr.operand))); break;
-                case OpCode::PUSH_CHAR: push(Value::character(std::get<char16_t>(instr.operand))); break;
-                case OpCode::PUSH_BOOL: push(Value::boolean(std::get<int64_t>(instr.operand) != 0)); break;
+                case OpCode::PUSH_INT: push(Value::integer(operandAs<int64_t>(instr))); break;
+                case OpCode::PUSH_FLOAT: push(Value::floating(operandAs<double>(instr))); break;
+                case OpCode::PUSH_STRING: {
+                    const int64_t index = operandAs<int64_t>(instr);
+                    if (index < 0 || static_cast<size_t>(index) >= code.stringConstants.size())
+                        throw VMError(VMErrorKind::InvalidOperand, "invalid string constant index " + to_string(index));
+                    push(Value::string(code.stringConstants[static_cast<size_t>(index)]));
+                    break;
+                }
+                case OpCode::PUSH_CHAR: push(Value::character(operandAs<char16_t>(instr))); break;
+                case OpCode::PUSH_BOOL: push(Value::boolean(operandAs<int64_t>(instr) != 0)); break;
                 case OpCode::BUILD_ARRAY: 
                 {
-                    const int64_t count = std::get<int64_t>(instr.operand);
-                    if (count < 0 || static_cast<size_t>(count) > stack_.size()) throw std::runtime_error("VMError: invalid array element count");
-                    auto array = std::make_shared<Array>();
+                    const int64_t count = operandAs<int64_t>(instr);
+                    if (count < 0 || static_cast<size_t>(count) > stack_.size()) throw VMError(VMErrorKind::InvalidOperand, "invalid array element count");
+                    auto array = make_shared<Array>();
                     array->elements.resize(static_cast<size_t>(count), Value::integer(0));
                     for (int64_t i = count - 1; i >= 0; --i) 
                         array->elements[static_cast<size_t>(i)] = pop();
-                    push(Value::array(std::move(array))); 
+                    push(Value::array(move(array))); 
                     break;
                 }
                 case OpCode::LOAD_LOCAL: {
-                    const int64_t slot = std::get<int64_t>(instr.operand);
-                    if (slot < 0 || static_cast<size_t>(slot) >= locals_.size() || !initializedLocals_[static_cast<size_t>(slot)])
-                        throw std::runtime_error("VMError: invalid or uninitialized local slot " + std::to_string(slot));
-                    push(locals_[static_cast<size_t>(slot)]); 
+                    const int64_t slot = operandAs<int64_t>(instr);
+                    const size_t index = slot < 0 ? 0 : currentBase_ + static_cast<size_t>(slot);
+                    if (slot < 0 || index >= locals_.size())
+                        throw VMError(VMErrorKind::InvalidOperand, "invalid or uninitialized local slot " + to_string(slot));
+                    if (!initializedLocals_[index])
+                        throw VMError(VMErrorKind::UninitializedLocal, "invalid or uninitialized local slot " + to_string(slot));
+                    push(locals_[index]);
                     break;
                 }
                 case OpCode::STORE_LOCAL: {
-                    const int64_t slot = std::get<int64_t>(instr.operand);
-                    if (slot < 0) throw std::runtime_error("VMError: invalid local slot " + std::to_string(slot));
-                    const size_t index = static_cast<size_t>(slot);
+                    const int64_t slot = operandAs<int64_t>(instr);
+                    if (slot < 0) throw VMError(VMErrorKind::InvalidOperand, "invalid local slot " + to_string(slot));
+                    const size_t index = currentBase_ + static_cast<size_t>(slot);
                     if (index >= locals_.size()) 
                     { 
                         locals_.resize(index + 1, Value::integer(0)); 
@@ -194,52 +222,103 @@ int VM::run(const Bytecode& code) {
                 {
                     Value rhs = pop(), lhs = pop(); 
                     push(applyBinOp(opCodeToOp(instr.op), 
-                    std::move(lhs), 
-                    std::move(rhs))); 
+                    move(lhs), 
+                    move(rhs))); 
                     break;
                 }
                 case OpCode::JUMP: 
-                    ip = static_cast<int>(std::get<int64_t>(instr.operand)); 
+                    ip = checkedJumpTarget(instr, code.size());
                     continue;
-                case OpCode::JUMP_IF_FALSE:
+                case OpCode::JUMP_IF_FALSE: {
+                    const int jumpTarget = checkedJumpTarget(instr, code.size());
                     if (!isTruthy(pop())) 
                     { 
-                        ip = static_cast<int>(std::get<int64_t>(instr.operand)); 
+                        ip = jumpTarget;
                         continue; 
                     }
                     break;
+                }
+                case OpCode::ENTER_FRAME: {
+                    const int64_t size = operandAs<int64_t>(instr);
+                    if (size < 0) throw VMError(VMErrorKind::InvalidOperand, "invalid frame size");
+                    const size_t end = currentBase_ + static_cast<size_t>(size);
+                    if (end > locals_.size()) {
+                        locals_.resize(end, Value::integer(0));
+                        initializedLocals_.resize(end, false);
+                    }
+                    for (size_t i = currentBase_; i < end; ++i) initializedLocals_[i] = false;
+                    currentFrameSize_ = static_cast<size_t>(size);
+                    break;
+                }
+                case OpCode::CALL: {
+                    const int target = static_cast<int>(operandAs<int64_t>(instr));
+                    if (target < 0 || target >= static_cast<int>(code.size()))
+                        throw VMError(VMErrorKind::InvalidOperand, "invalid call target " + to_string(target));
+                    frames_.push_back(CallFrame{ip + 1, currentBase_, currentFrameSize_});
+                    currentBase_ += currentFrameSize_;
+                    ip = target;
+                    continue;
+                }
+                case OpCode::RETURN: {
+                    const int64_t hasValue = operandAs<int64_t>(instr);
+                    if (hasValue != 0 && hasValue != 1) throw VMError(VMErrorKind::InvalidOperand, "invalid return operand");
+                    Value value = hasValue ? pop() : Value::integer(0);
+                    if (frames_.empty()) throw VMError(VMErrorKind::MalformedBytecode, "return with no active call");
+                    CallFrame frame = frames_.back();
+                    frames_.pop_back();
+                    currentBase_ = frame.base;
+                    currentFrameSize_ = frame.size;
+                    if (hasValue) push(move(value));
+                    ip = frame.returnAddress;
+                    continue;
+                }
                 case OpCode::PRINT: 
-                    std::cout << valueToString(pop()) << "\n"; 
+                    cout << valueToString(pop()) << "\n"; 
                     break;
                 case OpCode::INPUT: 
                 { 
-                    std::cout << std::get<std::string>(instr.operand); 
-                    std::string line; std::getline(std::cin, line); 
-                    push(Value::string(std::move(line))); 
+                    const int64_t index = operandAs<int64_t>(instr);
+                    if (index < 0 || static_cast<size_t>(index) >= code.stringConstants.size())
+                        throw VMError(VMErrorKind::InvalidOperand, "invalid string constant index " + to_string(index));
+                    cout << code.stringConstants[static_cast<size_t>(index)];
+                    string line; getline(cin, line); 
+                    push(Value::string(move(line))); 
                     break; 
                 }
                 case OpCode::CONVERT: 
                 {
                     Value value = pop(); 
-                    const int target = static_cast<int>(std::get<int64_t>(instr.operand)); 
-                    const double number = numericValue(value);
-                    if (target >= 1 && target <= 4) push(Value::integer(static_cast<int64_t>(number)));
-                    else if (target == 5 || target == 6) push(Value::floating(number));
-                    else if (target == 7) push(Value::character(static_cast<char16_t>(static_cast<int64_t>(number))));
-                    else throw std::runtime_error("VMError: invalid cast target");
+                    const auto target = static_cast<ValueType>(operandAs<int64_t>(instr));
+                    switch (target) {
+                    case ValueType::BYTE:
+                    case ValueType::SHORT:
+                    case ValueType::INT:
+                    case ValueType::LONG: {
+                        const double number = numericValue(value);
+                        push(Value::integer(static_cast<int64_t>(number)));
+                        break;
+                    }
+                    case ValueType::FLOAT:
+                    case ValueType::DOUBLE: {
+                        const double number = numericValue(value);
+                        push(Value::floating(number));
+                        break;
+                    }
+                    case ValueType::CHAR: {
+                        const double number = numericValue(value);
+                        push(Value::character(static_cast<char16_t>(static_cast<int64_t>(number))));
+                        break;
+                    }
+                    default:
+                        throw VMError(VMErrorKind::InvalidOperand, "invalid cast target");
+                    }
                     break;
                 }
                 case OpCode::POP: pop(); break;
                 case OpCode::HALT: return 0;
-                default: throw std::runtime_error("VMError: unknown opcode " + std::to_string(static_cast<int>(instr.op)));
+                default: throw VMError(VMErrorKind::UnknownOpcode, "unknown opcode " + to_string(static_cast<int>(instr.op)));
             }
             ++ip;
-        }
-    } 
-    catch (const std::exception& e) 
-    { 
-        std::cerr << e.what() << "\n"; 
-        return 1; 
     }
     return 0;
 }

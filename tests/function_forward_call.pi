@@ -1,0 +1,7 @@
+int first(int value) {
+    return later(value);
+}
+
+int later(int value) {
+    return value;
+}

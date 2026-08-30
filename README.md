@@ -10,9 +10,10 @@ Supported declaration types are `byte`, `short`, `int`, `long`, `float`, `double
 - Decimal literals are `double`; append `F` for `float`.
 - Safe numeric widening is implicit. Use a cast such as `(int) 3.9` for narrowing.
 - `String` is CVM's text type; equality compares contents. `input("prompt")` returns a `String`.
+- `+` concatenates text only when both operands are `String`; mixed string/non-string additions are type errors.
 - Conditions must be `boolean`.
 
-`string` and `bool` are no longer type keywords. Use `String` and `boolean` instead. String and character literals retain their raw-literal behavior; escape decoding is intentionally not implemented.
+String and character literals retain their raw-literal behavior; escape decoding is intentionally not implemented.
 
 ## Arrays (lexer and parser)
 
