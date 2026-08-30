@@ -17,6 +17,8 @@ enum class OpCode : uint8_t {
     PUSH_CHAR,      // operand: string  constant (single char)
     PUSH_BOOL,      // operand: int  0=false 1=true
     BUILD_ARRAY,    // operand: element count
+    LOAD_ARRAY_ELEMENT,  // pop index and array, then push selected element
+    STORE_ARRAY_ELEMENT, // pop value, index, and array; update element then push value
     LOAD_LOCAL,     // operand: numeric local slot → push value on stack
     STORE_LOCAL,    // operand: numeric local slot ← pop value from stack
     ADD,
@@ -50,6 +52,8 @@ inline string opCodeName(OpCode op) {
         case OpCode::PUSH_CHAR:     return "PUSH_CHAR";
         case OpCode::PUSH_BOOL:     return "PUSH_BOOL";
         case OpCode::BUILD_ARRAY:   return "BUILD_ARRAY";
+        case OpCode::LOAD_ARRAY_ELEMENT: return "LOAD_ARRAY_ELEMENT";
+        case OpCode::STORE_ARRAY_ELEMENT: return "STORE_ARRAY_ELEMENT";
         case OpCode::LOAD_LOCAL:    return "LOAD_LOCAL";
         case OpCode::STORE_LOCAL:   return "STORE_LOCAL";
         case OpCode::ADD:           return "ADD";

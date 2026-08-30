@@ -10,6 +10,7 @@ enum class VMErrorKind {
     UninitializedLocal,
     TypeMismatch,
     DivisionByZero,
+    IndexOutOfBounds,
     UnknownOpcode,
     InvalidOperand,
     MalformedBytecode

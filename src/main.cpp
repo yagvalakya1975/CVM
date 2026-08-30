@@ -19,8 +19,8 @@ static void printUsage(const char* prog) {
 int main(int argc, char** argv) {
     if (argc < 2) { printUsage(argv[0]); return 1; }
 
-    bool dumpAST = false;
-    bool dumpBytecode = false;
+    bool dumpAST = true;
+    bool dumpBytecode = true;
     bool parseOnly = false;
     bool dumpTokens = false;
     string sourceFile;

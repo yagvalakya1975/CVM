@@ -28,8 +28,10 @@ scores[2] = 42;
 
 Nested type brackets such as `int[][] grid` are supported. Array literals are
 compiled with a `BUILD_ARRAY` bytecode instruction and may be stored in and
-printed from array declarations. Indexed reads and writes are parsed but are not
-yet executed by the compiler/VM.
+printed from array declarations. Indexed reads and writes execute at runtime,
+including chained indexing for multidimensional arrays. Indices must be
+integral values and invalid indices (negative or out of bounds) produce a
+runtime error.
 
 Build and run:
 

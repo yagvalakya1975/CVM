@@ -15,7 +15,8 @@ Bytecode Compiler::compile(const ASTNode* root) {
     topFrameSize_ = 0;
     currentReturnType_ = ValueType::INVALID;
     hadError_ = false;
-    if (!root) {
+    if (!root) 
+    {
         cerr << "CompilerError: null AST root.\n";
         return {};
     }
@@ -311,10 +312,30 @@ ValueType Compiler::checkExpr(const ASTNode* node) {
             node->arrayDimensions = childDimensions + 1;
             break;
         }
-        case NODE_TYPE::ARRAY_ACCESS:
-        case NODE_TYPE::ARRAY_ASSIGN_EXPR:
-            typeError(node, "array indexing is not implemented yet");
+        case NODE_TYPE::ARRAY_ACCESS: {
+            ValueType arrayElementType = checkExpr(node->left);
+            ValueType indexType = checkExpr(node->right);
+            if (node->left->arrayDimensions <= 0)
+                typeError(node->left, "indexing requires an array operand");
+            if (node->right->arrayDimensions != 0 ||
+                (indexType != ValueType::BYTE && indexType != ValueType::SHORT &&
+                 indexType != ValueType::INT && indexType != ValueType::LONG &&
+                 indexType != ValueType::CHAR))
+                typeError(node->right, "array index must have an integral scalar type");
+            result = arrayElementType;
+            node->arrayDimensions = max(0, node->left->arrayDimensions - 1);
             break;
+        }
+        case NODE_TYPE::ARRAY_ASSIGN_EXPR: {
+            ValueType targetType = checkExpr(node->left);
+            ValueType rhsType = checkExpr(node->right);
+            if (node->left->arrayDimensions != node->right->arrayDimensions ||
+                !assignable(targetType, rhsType))
+                typeError(node, "cannot assign incompatible value to array element");
+            result = targetType;
+            node->arrayDimensions = node->left->arrayDimensions;
+            break;
+        }
         case NODE_TYPE::BINARY_EXPR: {
             ValueType a=checkExpr(node->left), b=checkExpr(node->right);
             const bool scalarOperands = node->left->arrayDimensions == 0 &&
@@ -567,6 +588,10 @@ void Compiler::compileExpr(const ASTNode* node) {
             emit(Instruction(OpCode::BUILD_ARRAY, static_cast<int64_t>(node->SUB_STATEMENTS.size())));
             break;
 
+        case NODE_TYPE::ARRAY_ACCESS:
+            compileArrayAccess(node);
+            break;
+
         // ── Assignment expression  id = expr ─────────────────────────────
         case NODE_TYPE::ASSIGN_EXPR:
             compileExpr(node->right);
@@ -574,6 +599,10 @@ void Compiler::compileExpr(const ASTNode* node) {
             emit(Instruction(OpCode::STORE_LOCAL, static_cast<int64_t>(node->localSlot)));
             // Assignment leaves a value on the stack (it's an expression)
             emit(Instruction(OpCode::LOAD_LOCAL, static_cast<int64_t>(node->localSlot)));
+            break;
+
+        case NODE_TYPE::ARRAY_ASSIGN_EXPR:
+            compileArrayAssign(node);
             break;
 
         case NODE_TYPE::CAST_EXPR:
@@ -591,6 +620,22 @@ void Compiler::compileExpr(const ASTNode* node) {
                       << static_cast<int>(node->type) << ".\n";
             break;
     }
+}
+
+void Compiler::compileArrayAccess(const ASTNode* node) {
+    compileExpr(node->left);
+    compileExpr(node->right);
+    emit(Instruction(OpCode::LOAD_ARRAY_ELEMENT));
+}
+
+void Compiler::compileArrayAssign(const ASTNode* node) {
+    const ASTNode* access = node->left;
+    compileExpr(access->left);
+    compileExpr(access->right);
+    compileExpr(node->right);
+    if (node->arrayDimensions == 0)
+        emitStorageConversion(node->dataType, node->right->dataType);
+    emit(Instruction(OpCode::STORE_ARRAY_ELEMENT));
 }
 
 void Compiler::compileBinaryExpr(const ASTNode* node) {

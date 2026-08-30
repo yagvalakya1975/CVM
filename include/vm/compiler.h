@@ -26,6 +26,8 @@ private:
     void compileBlock      (const ASTNode* node);
     void compileExpr       (const ASTNode* node);
     void compileBinaryExpr (const ASTNode* node);
+    void compileArrayAccess(const ASTNode* node);
+    void compileArrayAssign(const ASTNode* node);
     void emitStorageConversion(ValueType target, ValueType source);
     int  emit(Instruction instr);         
     void patchJump(int instrIdx, int target); 

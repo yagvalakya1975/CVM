@@ -83,6 +83,20 @@ int checkedJumpTarget(const Instruction& instr, size_t codeSize) {
                       "invalid jump target " + to_string(target));
     return static_cast<int>(target);
 }
+
+size_t checkedArrayIndex(const Value& arrayValue, const Value& indexValue) {
+    if (arrayValue.tag() != ValueTag::ARRAY)
+        throw VMError(VMErrorKind::TypeMismatch, "array operation requires an ARRAY operand");
+    if (!isIntegralNumeric(indexValue))
+        throw VMError(VMErrorKind::TypeMismatch, "array index must be an integral value");
+    const ArrayPtr& array = arrayValue.asArray();
+    if (!array)
+        throw VMError(VMErrorKind::InvalidOperand, "null array reference");
+    const int64_t index = integralValue(indexValue);
+    if (index < 0 || static_cast<uint64_t>(index) >= array->elements.size())
+        throw VMError(VMErrorKind::IndexOutOfBounds, "array index out of bounds: " + to_string(index));
+    return static_cast<size_t>(index);
+}
 }
 
 Value VM::applyBinOp(const string& op, Value lhs, Value rhs) {
@@ -183,6 +197,22 @@ int VM::run(const Bytecode& code) {
                     for (int64_t i = count - 1; i >= 0; --i) 
                         array->elements[static_cast<size_t>(i)] = pop();
                     push(Value::array(move(array))); 
+                    break;
+                }
+                case OpCode::LOAD_ARRAY_ELEMENT: {
+                    Value index = pop();
+                    Value arrayValue = pop();
+                    const size_t elementIndex = checkedArrayIndex(arrayValue, index);
+                    push(arrayValue.asArray()->elements[elementIndex]);
+                    break;
+                }
+                case OpCode::STORE_ARRAY_ELEMENT: {
+                    Value value = pop();
+                    Value index = pop();
+                    Value arrayValue = pop();
+                    const size_t elementIndex = checkedArrayIndex(arrayValue, index);
+                    arrayValue.asArray()->elements[elementIndex] = value;
+                    push(move(value));
                     break;
                 }
                 case OpCode::LOAD_LOCAL: {

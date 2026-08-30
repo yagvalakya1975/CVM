@@ -32,6 +32,15 @@ int main() {
         }
         return false;
     };
+    auto failsWith = [](VM& machine, const Bytecode& code, VMErrorKind kind) {
+        try {
+            (void)machine.run(code);
+        } catch (const VMError& error) {
+            return error.kind() == kind;
+        } catch (const runtime_error&) {
+        }
+        return false;
+    };
     Bytecode valid = {
         Instruction(OpCode::PUSH_CHAR, char16_t(u'A')),
         Instruction(OpCode::PUSH_INT, int64_t(1)),
@@ -59,6 +68,63 @@ int main() {
         Instruction(OpCode::HALT),
     };
     assert(vm.run(arrayIdentity) == 0);
+
+    Bytecode arrayMutationAndAlias = {
+        Instruction(OpCode::PUSH_INT, int64_t(1)),
+        Instruction(OpCode::BUILD_ARRAY, int64_t(1)),
+        Instruction(OpCode::STORE_LOCAL, int64_t(0)),
+        Instruction(OpCode::LOAD_LOCAL, int64_t(0)),
+        Instruction(OpCode::STORE_LOCAL, int64_t(1)),
+        Instruction(OpCode::LOAD_LOCAL, int64_t(1)),
+        Instruction(OpCode::PUSH_INT, int64_t(0)),
+        Instruction(OpCode::PUSH_INT, int64_t(9)),
+        Instruction(OpCode::STORE_ARRAY_ELEMENT),
+        Instruction(OpCode::POP),
+        Instruction(OpCode::LOAD_LOCAL, int64_t(0)),
+        Instruction(OpCode::PUSH_INT, int64_t(0)),
+        Instruction(OpCode::LOAD_ARRAY_ELEMENT),
+        Instruction(OpCode::PUSH_INT, int64_t(9)),
+        Instruction(OpCode::CMP_EQ),
+        Instruction(OpCode::POP),
+        Instruction(OpCode::HALT),
+    };
+    assert(vm.run(arrayMutationAndAlias) == 0);
+
+    Bytecode negativeArrayIndex = {
+        Instruction(OpCode::PUSH_INT, int64_t(1)),
+        Instruction(OpCode::BUILD_ARRAY, int64_t(1)),
+        Instruction(OpCode::PUSH_INT, int64_t(-1)),
+        Instruction(OpCode::LOAD_ARRAY_ELEMENT),
+        Instruction(OpCode::HALT),
+    };
+    assert(failsWith(vm, negativeArrayIndex, VMErrorKind::IndexOutOfBounds));
+
+    Bytecode pastEndArrayIndex = {
+        Instruction(OpCode::PUSH_INT, int64_t(1)),
+        Instruction(OpCode::BUILD_ARRAY, int64_t(1)),
+        Instruction(OpCode::PUSH_INT, int64_t(1)),
+        Instruction(OpCode::LOAD_ARRAY_ELEMENT),
+        Instruction(OpCode::HALT),
+    };
+    assert(failsWith(vm, pastEndArrayIndex, VMErrorKind::IndexOutOfBounds));
+
+    Bytecode floatingArrayIndex = {
+        Instruction(OpCode::PUSH_INT, int64_t(1)),
+        Instruction(OpCode::BUILD_ARRAY, int64_t(1)),
+        Instruction(OpCode::PUSH_FLOAT, 0.0),
+        Instruction(OpCode::LOAD_ARRAY_ELEMENT),
+        Instruction(OpCode::HALT),
+    };
+    assert(failsWith(vm, floatingArrayIndex, VMErrorKind::TypeMismatch));
+
+    Bytecode nonArrayStore = {
+        Instruction(OpCode::PUSH_INT, int64_t(1)),
+        Instruction(OpCode::PUSH_INT, int64_t(0)),
+        Instruction(OpCode::PUSH_INT, int64_t(2)),
+        Instruction(OpCode::STORE_ARRAY_ELEMENT),
+        Instruction(OpCode::HALT),
+    };
+    assert(failsWith(vm, nonArrayStore, VMErrorKind::TypeMismatch));
 
     Bytecode invalidCondition = {
         Instruction(OpCode::PUSH_INT, int64_t(1)),
