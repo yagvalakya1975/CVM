@@ -15,6 +15,15 @@ add_executable(cvmpp
     src/vm/vm.cpp
 )
 
+option(BUILD_COMPILER_FUZZ "Build the optional compiler fuzzer" OFF)
+if(BUILD_COMPILER_FUZZ)
+    add_executable(compiler_fuzz compiler_fuzz.cpp)
+    target_compile_definitions(compiler_fuzz PRIVATE
+        CVM_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    add_dependencies(compiler_fuzz cvmpp)
+endif()
+
 include(CTest)
 if(BUILD_TESTING)
     add_executable(local_slots_bytecode_test

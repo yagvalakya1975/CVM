@@ -41,4 +41,19 @@ cmake --build build
 ./build/cvmpp example.pi
 ```
 
-Run the test suite with `ctest --test-dir build --output-on-failure`.
+## Compiler fuzzer
+
+The optional `compiler_fuzz` program makes character mutations of existing
+`.pi` files and runs each input through `cvmpp` in parse-only mode. It is
+disabled by default.
+
+```sh
+cmake -S . -B build -DBUILD_COMPILER_FUZZ=ON
+cmake --build build --target compiler_fuzz
+./build/compiler_fuzz --count 100 --seed 12648430
+```
+
+The seed defaults to `12648430`, so repeating a run with the same corpus, seed,
+and count generates the same inputs. Each generated file is under 4 KB, and
+each compiler run has a 2-second timeout. Inputs that crash or time out are
+saved in `build/fuzz_failures/`. Use `--help` to see the available options.

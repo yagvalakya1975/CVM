@@ -1,0 +1,26 @@
+local_slots_bytecode 1 0.742253
+char_numeric_bytecode 1 0.71338
+array_binary_typecheck 1 0.83848
+runtime_value_model 1 0.77232
+local_slots_runtime 1 0.012143
+parser_arrays 1 0.0109963
+array_declarations_runtime 1 0.0115529
+array_indexing_runtime 1 0.0119524
+java_types_runtime 1 0.0113819
+numeric_conversions_runtime 1 0.0113396
+lowercase_string_type_rejected 1 0.0106614
+incompatible_assignment_rejected 1 0.0114264
+functions_runtime 1 0.0114793
+function_void_runtime 1 0.0109272
+function_bad_arg_count 1 0.0106573
+function_forward_call_rejected 1 0.0107626
+function_bad_arg_type 1 0.0113283
+function_bad_return 1 0.0110373
+function_return_outside 1 0.0107541
+cli_dump_ast 1 0.0110153
+cli_dump_bytecode 1 0.0111455
+cli_tokens_parse_only 1 0.0106879
+cli_old_ast_flag_rejected 1 0.0108083
+cli_old_bytecode_flag_rejected 1 0.0106719
+cli_multiple_sources_rejected 1 0.0106255
+---

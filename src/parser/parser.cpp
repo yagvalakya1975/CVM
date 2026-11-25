@@ -46,13 +46,13 @@ ValueType Parser::parseType() {
 ASTNode* Parser::parse() 
 {
     auto* root = new ASTNode(NODE_TYPE::ROOT);
-    while (!check(TokenType::END_OF_FILE)) 
+    while (!check(TokenType::END_OF_FILE) && !hadError_) 
     {
         ASTNode* stmt = parseStatement();
         if (stmt) root->SUB_STATEMENTS.push_back(stmt);
         else 
         { 
-            while (!check(TokenType::SEMICOLON) && !check(TokenType::RIGHT_BRACE) && !check(TokenType::END_OF_FILE)) 
+            while (!check(TokenType::SEMICOLON) && !check(TokenType::RIGHT_BRACE) && !check(TokenType::END_OF_FILE) && !hadError_) 
                 proceed(current.type); 
             if (check(TokenType::SEMICOLON)) 
                 proceed(TokenType::SEMICOLON); 
@@ -106,7 +106,7 @@ ASTNode* Parser::parseDeclStmt() {
         auto* function = new ASTNode(NODE_TYPE::FUNCTION_DECL, name->lexeme, line);
         function->dataType = type;
         if (!check(TokenType::RIGHT_PAREN)) {
-            while (true) {
+            while (!hadError_) {
                 if (!isTypeKeyword()) {
                     hadError_ = true;
                     cerr << "ParserError line " << current.line << ": expected parameter type.\n";

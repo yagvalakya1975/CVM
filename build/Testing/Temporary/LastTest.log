@@ -1,0 +1,1349 @@
+Start testing: Nov 25 12:31 IST
+----------------------------------------------------------
+1/25 Testing: local_slots_bytecode
+1/25 Test: local_slots_bytecode
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/local_slots_bytecode_test"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"local_slots_bytecode" start time: Nov 25 12:31 IST
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.74 sec
+----------------------------------------------------------
+Test Passed.
+"local_slots_bytecode" end time: Nov 25 12:31 IST
+"local_slots_bytecode" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/25 Testing: char_numeric_bytecode
+2/25 Test: char_numeric_bytecode
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/char_numeric_bytecode_test"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"char_numeric_bytecode" start time: Nov 25 12:31 IST
+Output:
+----------------------------------------------------------
+TypeError line 1: string concatenation requires two String operands
+TypeError line 1: string concatenation requires two String operands
+TypeError line 1: string concatenation requires two String operands
+<end of output>
+Test time =   0.71 sec
+----------------------------------------------------------
+Test Passed.
+"char_numeric_bytecode" end time: Nov 25 12:31 IST
+"char_numeric_bytecode" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/25 Testing: array_binary_typecheck
+3/25 Test: array_binary_typecheck
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/array_binary_typecheck_test"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"array_binary_typecheck" start time: Nov 25 12:31 IST
+Output:
+----------------------------------------------------------
+TypeError line 1: incompatible equality operands
+TypeError line 1: incompatible equality operands
+TypeError line 1: arithmetic requires numeric operands
+TypeError line 1: comparison requires numeric operands
+TypeError line 1: array index must have an integral scalar type
+TypeError line 1: array index must have an integral scalar type
+TypeError line 1: indexing requires an array operand
+TypeError line 1: indexing requires an array operand
+TypeError line 1: cannot assign incompatible value to array element
+<end of output>
+Test time =   0.84 sec
+----------------------------------------------------------
+Test Passed.
+"array_binary_typecheck" end time: Nov 25 12:31 IST
+"array_binary_typecheck" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/25 Testing: runtime_value_model
+4/25 Test: runtime_value_model
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/runtime_value_model_test"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"runtime_value_model" start time: Nov 25 12:31 IST
+Output:
+----------------------------------------------------------
+ok=true
+<end of output>
+Test time =   0.77 sec
+----------------------------------------------------------
+Test Passed.
+"runtime_value_model" end time: Nov 25 12:32 IST
+"runtime_value_model" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/25 Testing: local_slots_runtime
+5/25 Test: local_slots_runtime
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/local_slots.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"local_slots_runtime" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  DECL_STMT first :int
+    INT_LITERAL 1
+  DECL_STMT second :int
+    INT_LITERAL 2
+  PRINT_STMT
+    IDENTIFIER first
+  EXPR_STMT
+    ASSIGN_EXPR second
+      BINARY_EXPR
+        IDENTIFIER first
+        INT_LITERAL 9
+  PRINT_STMT
+    IDENTIFIER second
+  BLOCK_STMT
+    DECL_STMT inner :int
+      INT_LITERAL 30
+    PRINT_STMT
+      BINARY_EXPR
+        IDENTIFIER first
+        IDENTIFIER inner
+    BLOCK_STMT
+      DECL_STMT first :int
+        INT_LITERAL 40
+      PRINT_STMT
+        IDENTIFIER first
+    PRINT_STMT
+      IDENTIFIER first
+  PRINT_STMT
+    IDENTIFIER first
+
+
+=== BYTECODE DISASSEMBLY ===
+   0  JUMP            1
+1     ENTER_FRAME     4
+2     PUSH_INT        1
+3     CONVERT         4
+4     STORE_LOCAL     0
+5     PUSH_INT        2
+6     CONVERT         4
+7     STORE_LOCAL     1
+8     LOAD_LOCAL      0
+9     PRINT           
+10    LOAD_LOCAL      0
+11    PUSH_INT        9
+12    ADD             
+13    CONVERT         4
+14    STORE_LOCAL     1
+15    LOAD_LOCAL      1
+16    POP             
+17    LOAD_LOCAL      1
+18    PRINT           
+19    PUSH_INT        30
+20    CONVERT         4
+21    STORE_LOCAL     2
+22    LOAD_LOCAL      0
+23    LOAD_LOCAL      2
+24    ADD             
+25    PRINT           
+26    PUSH_INT        40
+27    CONVERT         4
+28    STORE_LOCAL     3
+29    LOAD_LOCAL      3
+30    PRINT           
+31    LOAD_LOCAL      0
+32    PRINT           
+33    LOAD_LOCAL      0
+34    PRINT           
+35    HALT            
+============================
+
+1
+10
+31
+40
+1
+1
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Pass Reason:
+Required regular expression found. Regex=[1]
+"local_slots_runtime" end time: Nov 25 12:32 IST
+"local_slots_runtime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/25 Testing: parser_arrays
+6/25 Test: parser_arrays
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/parser_arrays.pi" "--parse-only"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"parser_arrays" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  DECL_STMT scores :int[]
+    ARRAY_LITERAL
+      INT_LITERAL 10
+      INT_LITERAL 20
+      INT_LITERAL 30
+  DECL_STMT grid :int[][]
+    ARRAY_LITERAL
+      ARRAY_LITERAL
+        INT_LITERAL 1
+        INT_LITERAL 2
+      ARRAY_LITERAL
+        INT_LITERAL 3
+        INT_LITERAL 4
+  PRINT_STMT
+    ARRAY_ACCESS
+      IDENTIFIER scores
+      INT_LITERAL 1
+  EXPR_STMT
+    ARRAY_ASSIGN_EXPR
+      ARRAY_ACCESS
+        IDENTIFIER scores
+        INT_LITERAL 2
+      INT_LITERAL 42
+
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"parser_arrays" end time: Nov 25 12:32 IST
+"parser_arrays" time elapsed: 00:00:00
+----------------------------------------------------------
+
+7/25 Testing: array_declarations_runtime
+7/25 Test: array_declarations_runtime
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/array_declarations.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"array_declarations_runtime" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  DECL_STMT scores :int[]
+    ARRAY_LITERAL
+      INT_LITERAL 10
+      INT_LITERAL 20
+      INT_LITERAL 30
+  DECL_STMT grid :int[][]
+    ARRAY_LITERAL
+      ARRAY_LITERAL
+        INT_LITERAL 1
+        INT_LITERAL 2
+      ARRAY_LITERAL
+        INT_LITERAL 3
+        INT_LITERAL 4
+
+
+=== BYTECODE DISASSEMBLY ===
+   0  JUMP            1
+1     ENTER_FRAME     2
+2     PUSH_INT        10
+3     PUSH_INT        20
+4     PUSH_INT        30
+5     BUILD_ARRAY     3
+6     STORE_LOCAL     0
+7     PUSH_INT        1
+8     PUSH_INT        2
+9     BUILD_ARRAY     2
+10    PUSH_INT        3
+11    PUSH_INT        4
+12    BUILD_ARRAY     2
+13    BUILD_ARRAY     2
+14    STORE_LOCAL     1
+15    HALT            
+============================
+
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"array_declarations_runtime" end time: Nov 25 12:32 IST
+"array_declarations_runtime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+8/25 Testing: array_indexing_runtime
+8/25 Test: array_indexing_runtime
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/array_indexing.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"array_indexing_runtime" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  DECL_STMT scores :int[]
+    ARRAY_LITERAL
+      INT_LITERAL 10
+      INT_LITERAL 20
+      INT_LITERAL 30
+  PRINT_STMT
+    ARRAY_ACCESS
+      IDENTIFIER scores
+      INT_LITERAL 1
+  EXPR_STMT
+    ARRAY_ASSIGN_EXPR
+      ARRAY_ACCESS
+        IDENTIFIER scores
+        INT_LITERAL 2
+      INT_LITERAL 42
+  IF_STMT
+    BINARY_EXPR
+      ARRAY_ACCESS
+        IDENTIFIER scores
+        INT_LITERAL 2
+      INT_LITERAL 42
+    PRINT_STMT
+      ARRAY_ACCESS
+        IDENTIFIER scores
+        INT_LITERAL 2
+  DECL_STMT grid :int[][]
+    ARRAY_LITERAL
+      ARRAY_LITERAL
+        INT_LITERAL 1
+        INT_LITERAL 2
+      ARRAY_LITERAL
+        INT_LITERAL 3
+        INT_LITERAL 4
+  PRINT_STMT
+    ARRAY_ACCESS
+      ARRAY_ACCESS
+        IDENTIFIER grid
+        INT_LITERAL 1
+      INT_LITERAL 0
+  EXPR_STMT
+    ARRAY_ASSIGN_EXPR
+      ARRAY_ACCESS
+        ARRAY_ACCESS
+          IDENTIFIER grid
+          INT_LITERAL 0
+        INT_LITERAL 1
+      INT_LITERAL 9
+  PRINT_STMT
+    ARRAY_ACCESS
+      ARRAY_ACCESS
+        IDENTIFIER grid
+        INT_LITERAL 0
+      INT_LITERAL 1
+
+
+=== BYTECODE DISASSEMBLY ===
+   0  JUMP            1
+1     ENTER_FRAME     2
+2     PUSH_INT        10
+3     PUSH_INT        20
+4     PUSH_INT        30
+5     BUILD_ARRAY     3
+6     STORE_LOCAL     0
+7     LOAD_LOCAL      0
+8     PUSH_INT        1
+9     LOAD_ARRAY_ELEMENT
+10    PRINT           
+11    LOAD_LOCAL      0
+12    PUSH_INT        2
+13    PUSH_INT        42
+14    CONVERT         4
+15    STORE_ARRAY_ELEMENT
+16    POP             
+17    LOAD_LOCAL      0
+18    PUSH_INT        2
+19    LOAD_ARRAY_ELEMENT
+20    PUSH_INT        42
+21    CMP_EQ          
+22    JUMP_IF_FALSE   27
+23    LOAD_LOCAL      0
+24    PUSH_INT        2
+25    LOAD_ARRAY_ELEMENT
+26    PRINT           
+27    PUSH_INT        1
+28    PUSH_INT        2
+29    BUILD_ARRAY     2
+30    PUSH_INT        3
+31    PUSH_INT        4
+32    BUILD_ARRAY     2
+33    BUILD_ARRAY     2
+34    STORE_LOCAL     1
+35    LOAD_LOCAL      1
+36    PUSH_INT        1
+37    LOAD_ARRAY_ELEMENT
+38    PUSH_INT        0
+39    LOAD_ARRAY_ELEMENT
+40    PRINT           
+41    LOAD_LOCAL      1
+42    PUSH_INT        0
+43    LOAD_ARRAY_ELEMENT
+44    PUSH_INT        1
+45    PUSH_INT        9
+46    CONVERT         4
+47    STORE_ARRAY_ELEMENT
+48    POP             
+49    LOAD_LOCAL      1
+50    PUSH_INT        0
+51    LOAD_ARRAY_ELEMENT
+52    PUSH_INT        1
+53    LOAD_ARRAY_ELEMENT
+54    PRINT           
+55    HALT            
+============================
+
+20
+42
+3
+9
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Pass Reason:
+Required regular expression found. Regex=[20]
+"array_indexing_runtime" end time: Nov 25 12:32 IST
+"array_indexing_runtime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+9/25 Testing: java_types_runtime
+9/25 Test: java_types_runtime
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/java_types.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"java_types_runtime" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  DECL_STMT b :byte
+    INT_LITERAL 7
+  DECL_STMT s :short
+    IDENTIFIER b
+  DECL_STMT l :long
+    IDENTIFIER s
+  DECL_STMT i :int
+    IDENTIFIER s
+  DECL_STMT f :float
+    IDENTIFIER l
+  DECL_STMT d :double
+    BINARY_EXPR
+      IDENTIFIER f
+      DOUBLE_LITERAL 0.5
+  DECL_STMT c :char
+    CHAR_LITERAL A
+  DECL_STMT label :String
+    STRING_LITERAL answer=
+  DECL_STMT ok :boolean
+    BINARY_EXPR
+      IDENTIFIER d
+      DOUBLE_LITERAL 7.0
+  DECL_STMT truncated :int
+    CAST_EXPR :int
+      DOUBLE_LITERAL 3.9
+  IF_STMT
+    IDENTIFIER ok
+    BLOCK_STMT
+      PRINT_STMT
+        BINARY_EXPR
+          IDENTIFIER label
+          STRING_LITERAL 43
+      PRINT_STMT
+        IDENTIFIER truncated
+
+
+=== BYTECODE DISASSEMBLY ===
+   0  JUMP            1
+1     ENTER_FRAME     10
+2     PUSH_INT        7
+3     CONVERT         2
+4     STORE_LOCAL     0
+5     LOAD_LOCAL      0
+6     CONVERT         3
+7     STORE_LOCAL     1
+8     LOAD_LOCAL      1
+9     CONVERT         5
+10    STORE_LOCAL     2
+11    LOAD_LOCAL      1
+12    CONVERT         4
+13    STORE_LOCAL     3
+14    LOAD_LOCAL      2
+15    CONVERT         6
+16    STORE_LOCAL     4
+17    LOAD_LOCAL      4
+18    PUSH_FLOAT      0.5
+19    ADD             
+20    CONVERT         7
+21    STORE_LOCAL     5
+22    PUSH_CHAR       'A'
+23    CONVERT         8
+24    STORE_LOCAL     6
+25    PUSH_STRING     0   ; "answer="
+26    STORE_LOCAL     7
+27    LOAD_LOCAL      5
+28    PUSH_FLOAT      7
+29    CMP_GT          
+30    STORE_LOCAL     8
+31    PUSH_FLOAT      3.9
+32    CONVERT         4
+33    CONVERT         4
+34    STORE_LOCAL     9
+35    LOAD_LOCAL      8
+36    JUMP_IF_FALSE   43
+37    LOAD_LOCAL      7
+38    PUSH_STRING     1   ; "43"
+39    ADD             
+40    PRINT           
+41    LOAD_LOCAL      9
+42    PRINT           
+43    HALT            
+============================
+
+answer=43
+3
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Pass Reason:
+Required regular expression found. Regex=[answer=43]
+"java_types_runtime" end time: Nov 25 12:32 IST
+"java_types_runtime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+10/25 Testing: numeric_conversions_runtime
+10/25 Test: numeric_conversions_runtime
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/numeric_conversions.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"numeric_conversions_runtime" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  FUNCTION_DECL takeInt :int
+    BLOCK_STMT
+      RETURN_STMT
+        IDENTIFIER value
+    DECL_STMT value :int
+  FUNCTION_DECL takeChar :char
+    BLOCK_STMT
+      RETURN_STMT
+        IDENTIFIER value
+    DECL_STMT value :char
+  PRINT_STMT
+    CAST_EXPR :long
+      DOUBLE_LITERAL 3.9
+  PRINT_STMT
+    CAST_EXPR :double
+      INT_LITERAL 3
+  PRINT_STMT
+    CAST_EXPR :char
+      INT_LITERAL 65
+  PRINT_STMT
+    CAST_EXPR :byte
+      DOUBLE_LITERAL 3.9
+  PRINT_STMT
+    CAST_EXPR :short
+      DOUBLE_LITERAL 3.9
+  PRINT_STMT
+    CAST_EXPR :int
+      DOUBLE_LITERAL 3.9
+  DECL_STMT c :char
+    INT_LITERAL 65
+  PRINT_STMT
+    IDENTIFIER c
+  DECL_STMT x :int
+    IDENTIFIER c
+  PRINT_STMT
+    IDENTIFIER x
+  DECL_STMT d :double
+    INT_LITERAL 3
+  PRINT_STMT
+    IDENTIFIER d
+  EXPR_STMT
+    ASSIGN_EXPR c
+      CAST_EXPR :char
+        INT_LITERAL 66
+  PRINT_STMT
+    IDENTIFIER c
+  PRINT_STMT
+    CALL_EXPR takeInt
+      IDENTIFIER c
+  PRINT_STMT
+    CALL_EXPR takeChar
+      CAST_EXPR :char
+        INT_LITERAL 66
+
+
+=== BYTECODE DISASSEMBLY ===
+   0  JUMP            11
+1     ENTER_FRAME     1
+2     STORE_LOCAL     0
+3     LOAD_LOCAL      0
+4     CONVERT         4
+5     RETURN          1
+6     ENTER_FRAME     1
+7     STORE_LOCAL     0
+8     LOAD_LOCAL      0
+9     CONVERT         8
+10    RETURN          1
+11    ENTER_FRAME     3
+12    PUSH_FLOAT      3.9
+13    CONVERT         5
+14    PRINT           
+15    PUSH_INT        3
+16    CONVERT         7
+17    PRINT           
+18    PUSH_INT        65
+19    CONVERT         8
+20    PRINT           
+21    PUSH_FLOAT      3.9
+22    CONVERT         2
+23    PRINT           
+24    PUSH_FLOAT      3.9
+25    CONVERT         3
+26    PRINT           
+27    PUSH_FLOAT      3.9
+28    CONVERT         4
+29    PRINT           
+30    PUSH_INT        65
+31    CONVERT         8
+32    STORE_LOCAL     0
+33    LOAD_LOCAL      0
+34    PRINT           
+35    LOAD_LOCAL      0
+36    CONVERT         4
+37    STORE_LOCAL     1
+38    LOAD_LOCAL      1
+39    PRINT           
+40    PUSH_INT        3
+41    CONVERT         7
+42    STORE_LOCAL     2
+43    LOAD_LOCAL      2
+44    PRINT           
+45    PUSH_INT        66
+46    CONVERT         8
+47    CONVERT         8
+48    STORE_LOCAL     0
+49    LOAD_LOCAL      0
+50    POP             
+51    LOAD_LOCAL      0
+52    PRINT           
+53    LOAD_LOCAL      0
+54    CONVERT         4
+55    CALL            1
+56    PRINT           
+57    PUSH_INT        66
+58    CONVERT         8
+59    CONVERT         8
+60    CALL            6
+61    PRINT           
+62    HALT            
+============================
+
+3
+3.0
+A
+3
+3
+3
+A
+65
+3.0
+B
+66
+B
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Pass Reason:
+Required regular expression found. Regex=[3]
+"numeric_conversions_runtime" end time: Nov 25 12:32 IST
+"numeric_conversions_runtime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+11/25 Testing: lowercase_string_type_rejected
+11/25 Test: lowercase_string_type_rejected
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/legacy_type.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"lowercase_string_type_rejected" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+ParserError line 1: expected ;, found IDENTIFIER.
+ParserError line 2: expected ;, found IDENTIFIER.
+Parsing failed.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"lowercase_string_type_rejected" end time: Nov 25 12:32 IST
+"lowercase_string_type_rejected" time elapsed: 00:00:00
+----------------------------------------------------------
+
+12/25 Testing: incompatible_assignment_rejected
+12/25 Test: incompatible_assignment_rejected
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/type_error.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"incompatible_assignment_rejected" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  DECL_STMT value :int
+    STRING_LITERAL not a number
+  PRINT_STMT
+    IDENTIFIER x
+
+TypeError line 1: cannot initialize int with String
+TypeError line 2: undefined variable 'x'
+Compilation failed.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"incompatible_assignment_rejected" end time: Nov 25 12:32 IST
+"incompatible_assignment_rejected" time elapsed: 00:00:00
+----------------------------------------------------------
+
+13/25 Testing: functions_runtime
+13/25 Test: functions_runtime
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/functions.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"functions_runtime" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  FUNCTION_DECL add :int
+    BLOCK_STMT
+      RETURN_STMT
+        BINARY_EXPR
+          IDENTIFIER a
+          IDENTIFIER b
+    DECL_STMT a :int
+    DECL_STMT b :int
+  FUNCTION_DECL show :void
+    BLOCK_STMT
+      PRINT_STMT
+        IDENTIFIER value
+    DECL_STMT value :int
+  FUNCTION_DECL later :int
+    BLOCK_STMT
+      DECL_STMT saved :int
+        IDENTIFIER n
+      IF_STMT
+        BINARY_EXPR
+          IDENTIFIER n
+          INT_LITERAL 1
+        BLOCK_STMT
+          RETURN_STMT
+            IDENTIFIER n
+      RETURN_STMT
+        BINARY_EXPR
+          CALL_EXPR later
+            BINARY_EXPR
+              IDENTIFIER n
+              INT_LITERAL 1
+          CALL_EXPR later
+            BINARY_EXPR
+              IDENTIFIER n
+              INT_LITERAL 2
+    DECL_STMT n :int
+  FUNCTION_DECL first :int
+    BLOCK_STMT
+      RETURN_STMT
+        CALL_EXPR later
+          IDENTIFIER x
+    DECL_STMT x :int
+  PRINT_STMT
+    CALL_EXPR add
+      INT_LITERAL 2
+      INT_LITERAL 3
+  EXPR_STMT
+    CALL_EXPR show
+      CALL_EXPR first
+        INT_LITERAL 6
+
+
+=== BYTECODE DISASSEMBLY ===
+   0  JUMP            46
+1     ENTER_FRAME     2
+2     STORE_LOCAL     1
+3     STORE_LOCAL     0
+4     LOAD_LOCAL      0
+5     LOAD_LOCAL      1
+6     ADD             
+7     CONVERT         4
+8     RETURN          1
+9     ENTER_FRAME     1
+10    STORE_LOCAL     0
+11    LOAD_LOCAL      0
+12    PRINT           
+13    RETURN          0
+14    ENTER_FRAME     2
+15    STORE_LOCAL     0
+16    LOAD_LOCAL      0
+17    CONVERT         4
+18    STORE_LOCAL     1
+19    LOAD_LOCAL      0
+20    PUSH_INT        1
+21    CMP_LE          
+22    JUMP_IF_FALSE   26
+23    LOAD_LOCAL      0
+24    CONVERT         4
+25    RETURN          1
+26    LOAD_LOCAL      0
+27    PUSH_INT        1
+28    SUB             
+29    CONVERT         4
+30    CALL            14
+31    LOAD_LOCAL      0
+32    PUSH_INT        2
+33    SUB             
+34    CONVERT         4
+35    CALL            14
+36    ADD             
+37    CONVERT         4
+38    RETURN          1
+39    ENTER_FRAME     1
+40    STORE_LOCAL     0
+41    LOAD_LOCAL      0
+42    CONVERT         4
+43    CALL            14
+44    CONVERT         4
+45    RETURN          1
+46    ENTER_FRAME     0
+47    PUSH_INT        2
+48    CONVERT         4
+49    PUSH_INT        3
+50    CONVERT         4
+51    CALL            1
+52    PRINT           
+53    PUSH_INT        6
+54    CONVERT         4
+55    CALL            39
+56    CONVERT         4
+57    CALL            9
+58    HALT            
+============================
+
+5
+8
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Pass Reason:
+Required regular expression found. Regex=[5]
+"functions_runtime" end time: Nov 25 12:32 IST
+"functions_runtime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+14/25 Testing: function_void_runtime
+14/25 Test: function_void_runtime
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/function_void.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"function_void_runtime" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  FUNCTION_DECL greet :void
+    BLOCK_STMT
+      PRINT_STMT
+        STRING_LITERAL hello
+  EXPR_STMT
+    CALL_EXPR greet
+
+
+=== BYTECODE DISASSEMBLY ===
+   0  JUMP            5
+1     ENTER_FRAME     0
+2     PUSH_STRING     0   ; "hello"
+3     PRINT           
+4     RETURN          0
+5     ENTER_FRAME     0
+6     CALL            1
+7     HALT            
+============================
+
+hello
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Pass Reason:
+Required regular expression found. Regex=[hello]
+"function_void_runtime" end time: Nov 25 12:32 IST
+"function_void_runtime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+15/25 Testing: function_bad_arg_count
+15/25 Test: function_bad_arg_count
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/function_bad_arg_count.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"function_bad_arg_count" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  FUNCTION_DECL one :int
+    BLOCK_STMT
+      RETURN_STMT
+        IDENTIFIER value
+    DECL_STMT value :int
+  PRINT_STMT
+    CALL_EXPR one
+
+TypeError line 4: function 'one' expects 1 argument(s)
+Compilation failed.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"function_bad_arg_count" end time: Nov 25 12:32 IST
+"function_bad_arg_count" time elapsed: 00:00:00
+----------------------------------------------------------
+
+16/25 Testing: function_forward_call_rejected
+16/25 Test: function_forward_call_rejected
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/function_forward_call.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"function_forward_call_rejected" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  FUNCTION_DECL first :int
+    BLOCK_STMT
+      RETURN_STMT
+        CALL_EXPR later
+          IDENTIFIER value
+    DECL_STMT value :int
+  FUNCTION_DECL later :int
+    BLOCK_STMT
+      RETURN_STMT
+        IDENTIFIER value
+    DECL_STMT value :int
+
+TypeError line 2: undefined function 'later'
+TypeError line 2: cannot return <invalid> from int function
+Compilation failed.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"function_forward_call_rejected" end time: Nov 25 12:32 IST
+"function_forward_call_rejected" time elapsed: 00:00:00
+----------------------------------------------------------
+
+17/25 Testing: function_bad_arg_type
+17/25 Test: function_bad_arg_type
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/function_bad_arg_type.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"function_bad_arg_type" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  FUNCTION_DECL one :int
+    BLOCK_STMT
+      RETURN_STMT
+        IDENTIFIER value
+    DECL_STMT value :int
+  PRINT_STMT
+    CALL_EXPR one
+      STRING_LITERAL wrong
+
+TypeError line 4: argument 1 cannot be passed to one
+Compilation failed.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"function_bad_arg_type" end time: Nov 25 12:32 IST
+"function_bad_arg_type" time elapsed: 00:00:00
+----------------------------------------------------------
+
+18/25 Testing: function_bad_return
+18/25 Test: function_bad_return
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/function_bad_return.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"function_bad_return" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  FUNCTION_DECL wrong :int
+    BLOCK_STMT
+      RETURN_STMT
+        STRING_LITERAL wrong
+
+TypeError line 2: cannot return String from int function
+Compilation failed.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"function_bad_return" end time: Nov 25 12:32 IST
+"function_bad_return" time elapsed: 00:00:00
+----------------------------------------------------------
+
+19/25 Testing: function_return_outside
+19/25 Test: function_return_outside
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/function_return_outside.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"function_return_outside" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  RETURN_STMT
+    INT_LITERAL 1
+
+TypeError line 1: return outside a function
+Compilation failed.
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"function_return_outside" end time: Nov 25 12:32 IST
+"function_return_outside" time elapsed: 00:00:00
+----------------------------------------------------------
+
+20/25 Testing: cli_dump_ast
+20/25 Test: cli_dump_ast
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/local_slots.pi" "--dump-ast"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"cli_dump_ast" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  DECL_STMT first :int
+    INT_LITERAL 1
+  DECL_STMT second :int
+    INT_LITERAL 2
+  PRINT_STMT
+    IDENTIFIER first
+  EXPR_STMT
+    ASSIGN_EXPR second
+      BINARY_EXPR
+        IDENTIFIER first
+        INT_LITERAL 9
+  PRINT_STMT
+    IDENTIFIER second
+  BLOCK_STMT
+    DECL_STMT inner :int
+      INT_LITERAL 30
+    PRINT_STMT
+      BINARY_EXPR
+        IDENTIFIER first
+        IDENTIFIER inner
+    BLOCK_STMT
+      DECL_STMT first :int
+        INT_LITERAL 40
+      PRINT_STMT
+        IDENTIFIER first
+    PRINT_STMT
+      IDENTIFIER first
+  PRINT_STMT
+    IDENTIFIER first
+
+
+=== BYTECODE DISASSEMBLY ===
+   0  JUMP            1
+1     ENTER_FRAME     4
+2     PUSH_INT        1
+3     CONVERT         4
+4     STORE_LOCAL     0
+5     PUSH_INT        2
+6     CONVERT         4
+7     STORE_LOCAL     1
+8     LOAD_LOCAL      0
+9     PRINT           
+10    LOAD_LOCAL      0
+11    PUSH_INT        9
+12    ADD             
+13    CONVERT         4
+14    STORE_LOCAL     1
+15    LOAD_LOCAL      1
+16    POP             
+17    LOAD_LOCAL      1
+18    PRINT           
+19    PUSH_INT        30
+20    CONVERT         4
+21    STORE_LOCAL     2
+22    LOAD_LOCAL      0
+23    LOAD_LOCAL      2
+24    ADD             
+25    PRINT           
+26    PUSH_INT        40
+27    CONVERT         4
+28    STORE_LOCAL     3
+29    LOAD_LOCAL      3
+30    PRINT           
+31    LOAD_LOCAL      0
+32    PRINT           
+33    LOAD_LOCAL      0
+34    PRINT           
+35    HALT            
+============================
+
+1
+10
+31
+40
+1
+1
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Pass Reason:
+Required regular expression found. Regex=[AST]
+"cli_dump_ast" end time: Nov 25 12:32 IST
+"cli_dump_ast" time elapsed: 00:00:00
+----------------------------------------------------------
+
+21/25 Testing: cli_dump_bytecode
+21/25 Test: cli_dump_bytecode
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/local_slots.pi" "--dump-bytecode"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"cli_dump_bytecode" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+AST
+ROOT
+  DECL_STMT first :int
+    INT_LITERAL 1
+  DECL_STMT second :int
+    INT_LITERAL 2
+  PRINT_STMT
+    IDENTIFIER first
+  EXPR_STMT
+    ASSIGN_EXPR second
+      BINARY_EXPR
+        IDENTIFIER first
+        INT_LITERAL 9
+  PRINT_STMT
+    IDENTIFIER second
+  BLOCK_STMT
+    DECL_STMT inner :int
+      INT_LITERAL 30
+    PRINT_STMT
+      BINARY_EXPR
+        IDENTIFIER first
+        IDENTIFIER inner
+    BLOCK_STMT
+      DECL_STMT first :int
+        INT_LITERAL 40
+      PRINT_STMT
+        IDENTIFIER first
+    PRINT_STMT
+      IDENTIFIER first
+  PRINT_STMT
+    IDENTIFIER first
+
+
+=== BYTECODE DISASSEMBLY ===
+   0  JUMP            1
+1     ENTER_FRAME     4
+2     PUSH_INT        1
+3     CONVERT         4
+4     STORE_LOCAL     0
+5     PUSH_INT        2
+6     CONVERT         4
+7     STORE_LOCAL     1
+8     LOAD_LOCAL      0
+9     PRINT           
+10    LOAD_LOCAL      0
+11    PUSH_INT        9
+12    ADD             
+13    CONVERT         4
+14    STORE_LOCAL     1
+15    LOAD_LOCAL      1
+16    POP             
+17    LOAD_LOCAL      1
+18    PRINT           
+19    PUSH_INT        30
+20    CONVERT         4
+21    STORE_LOCAL     2
+22    LOAD_LOCAL      0
+23    LOAD_LOCAL      2
+24    ADD             
+25    PRINT           
+26    PUSH_INT        40
+27    CONVERT         4
+28    STORE_LOCAL     3
+29    LOAD_LOCAL      3
+30    PRINT           
+31    LOAD_LOCAL      0
+32    PRINT           
+33    LOAD_LOCAL      0
+34    PRINT           
+35    HALT            
+============================
+
+1
+10
+31
+40
+1
+1
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Pass Reason:
+Required regular expression found. Regex=[BYTECODE DISASSEMBLY]
+"cli_dump_bytecode" end time: Nov 25 12:32 IST
+"cli_dump_bytecode" time elapsed: 00:00:00
+----------------------------------------------------------
+
+22/25 Testing: cli_tokens_parse_only
+22/25 Test: cli_tokens_parse_only
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/local_slots.pi" "--tokens" "--parse-only"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"cli_tokens_parse_only" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+Token: int | Lexeme: 'int' | Line: 1
+Token: IDENTIFIER | Lexeme: 'first' | Line: 1
+Token: = | Lexeme: '=' | Line: 1
+Token: INT_LITERAL | Lexeme: '1' | Line: 1
+Token: ; | Lexeme: ';' | Line: 1
+Token: int | Lexeme: 'int' | Line: 2
+Token: IDENTIFIER | Lexeme: 'second' | Line: 2
+Token: = | Lexeme: '=' | Line: 2
+Token: INT_LITERAL | Lexeme: '2' | Line: 2
+Token: ; | Lexeme: ';' | Line: 2
+Token: print | Lexeme: 'print' | Line: 3
+Token: ( | Lexeme: '(' | Line: 3
+Token: IDENTIFIER | Lexeme: 'first' | Line: 3
+Token: ) | Lexeme: ')' | Line: 3
+Token: ; | Lexeme: ';' | Line: 3
+Token: IDENTIFIER | Lexeme: 'second' | Line: 4
+Token: = | Lexeme: '=' | Line: 4
+Token: IDENTIFIER | Lexeme: 'first' | Line: 4
+Token: + | Lexeme: '+' | Line: 4
+Token: INT_LITERAL | Lexeme: '9' | Line: 4
+Token: ; | Lexeme: ';' | Line: 4
+Token: print | Lexeme: 'print' | Line: 5
+Token: ( | Lexeme: '(' | Line: 5
+Token: IDENTIFIER | Lexeme: 'second' | Line: 5
+Token: ) | Lexeme: ')' | Line: 5
+Token: ; | Lexeme: ';' | Line: 5
+Token: { | Lexeme: '{' | Line: 6
+Token: int | Lexeme: 'int' | Line: 7
+Token: IDENTIFIER | Lexeme: 'inner' | Line: 7
+Token: = | Lexeme: '=' | Line: 7
+Token: INT_LITERAL | Lexeme: '30' | Line: 7
+Token: ; | Lexeme: ';' | Line: 7
+Token: print | Lexeme: 'print' | Line: 8
+Token: ( | Lexeme: '(' | Line: 8
+Token: IDENTIFIER | Lexeme: 'first' | Line: 8
+Token: + | Lexeme: '+' | Line: 8
+Token: IDENTIFIER | Lexeme: 'inner' | Line: 8
+Token: ) | Lexeme: ')' | Line: 8
+Token: ; | Lexeme: ';' | Line: 8
+Token: { | Lexeme: '{' | Line: 9
+Token: int | Lexeme: 'int' | Line: 10
+Token: IDENTIFIER | Lexeme: 'first' | Line: 10
+Token: = | Lexeme: '=' | Line: 10
+Token: INT_LITERAL | Lexeme: '40' | Line: 10
+Token: ; | Lexeme: ';' | Line: 10
+Token: print | Lexeme: 'print' | Line: 11
+Token: ( | Lexeme: '(' | Line: 11
+Token: IDENTIFIER | Lexeme: 'first' | Line: 11
+Token: ) | Lexeme: ')' | Line: 11
+Token: ; | Lexeme: ';' | Line: 11
+Token: } | Lexeme: '}' | Line: 12
+Token: print | Lexeme: 'print' | Line: 13
+Token: ( | Lexeme: '(' | Line: 13
+Token: IDENTIFIER | Lexeme: 'first' | Line: 13
+Token: ) | Lexeme: ')' | Line: 13
+Token: ; | Lexeme: ';' | Line: 13
+Token: } | Lexeme: '}' | Line: 14
+Token: print | Lexeme: 'print' | Line: 15
+Token: ( | Lexeme: '(' | Line: 15
+Token: IDENTIFIER | Lexeme: 'first' | Line: 15
+Token: ) | Lexeme: ')' | Line: 15
+Token: ; | Lexeme: ';' | Line: 15
+Token: EOF | Lexeme: '' | Line: 16
+AST
+ROOT
+  DECL_STMT first :int
+    INT_LITERAL 1
+  DECL_STMT second :int
+    INT_LITERAL 2
+  PRINT_STMT
+    IDENTIFIER first
+  EXPR_STMT
+    ASSIGN_EXPR second
+      BINARY_EXPR
+        IDENTIFIER first
+        INT_LITERAL 9
+  PRINT_STMT
+    IDENTIFIER second
+  BLOCK_STMT
+    DECL_STMT inner :int
+      INT_LITERAL 30
+    PRINT_STMT
+      BINARY_EXPR
+        IDENTIFIER first
+        IDENTIFIER inner
+    BLOCK_STMT
+      DECL_STMT first :int
+        INT_LITERAL 40
+      PRINT_STMT
+        IDENTIFIER first
+    PRINT_STMT
+      IDENTIFIER first
+  PRINT_STMT
+    IDENTIFIER first
+
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Pass Reason:
+Required regular expression found. Regex=[Token:]
+"cli_tokens_parse_only" end time: Nov 25 12:32 IST
+"cli_tokens_parse_only" time elapsed: 00:00:00
+----------------------------------------------------------
+
+23/25 Testing: cli_old_ast_flag_rejected
+23/25 Test: cli_old_ast_flag_rejected
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/local_slots.pi" "--ast"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"cli_old_ast_flag_rejected" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+Error: unknown option '--ast'
+Usage: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp <source.pi> [--dump-ast] [--dump-bytecode] [--parse-only] [--tokens]
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"cli_old_ast_flag_rejected" end time: Nov 25 12:32 IST
+"cli_old_ast_flag_rejected" time elapsed: 00:00:00
+----------------------------------------------------------
+
+24/25 Testing: cli_old_bytecode_flag_rejected
+24/25 Test: cli_old_bytecode_flag_rejected
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/local_slots.pi" "--bytecode"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"cli_old_bytecode_flag_rejected" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+Error: unknown option '--bytecode'
+Usage: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp <source.pi> [--dump-ast] [--dump-bytecode] [--parse-only] [--tokens]
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"cli_old_bytecode_flag_rejected" end time: Nov 25 12:32 IST
+"cli_old_bytecode_flag_rejected" time elapsed: 00:00:00
+----------------------------------------------------------
+
+25/25 Testing: cli_multiple_sources_rejected
+25/25 Test: cli_multiple_sources_rejected
+Command: "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/local_slots.pi" "/Users/my/Desktop/cvm_final/CVM-fully-functional-vm/tests/functions.pi"
+Directory: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build
+"cli_multiple_sources_rejected" start time: Nov 25 12:32 IST
+Output:
+----------------------------------------------------------
+Error: multiple source files provided.
+Usage: /Users/my/Desktop/cvm_final/CVM-fully-functional-vm/build/cvmpp <source.pi> [--dump-ast] [--dump-bytecode] [--parse-only] [--tokens]
+<end of output>
+Test time =   0.01 sec
+----------------------------------------------------------
+Test Passed.
+"cli_multiple_sources_rejected" end time: Nov 25 12:32 IST
+"cli_multiple_sources_rejected" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 25 12:32 IST
