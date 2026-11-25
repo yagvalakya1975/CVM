@@ -1,1 +1,2 @@
 string value = "old";
+bool enabled = true;

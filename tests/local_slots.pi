@@ -1,0 +1,15 @@
+int first = 1;
+int second = 2;
+print(first);
+second = first + 9;
+print(second);
+{
+    int inner = 30;
+    print(first + inner);
+    {
+        int first = 40;
+        print(first);
+    }
+    print(first);
+}
+print(first);

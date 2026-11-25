@@ -1,28 +1,26 @@
 #pragma once
 #include <string>
+#include <cstdint>
 #include <variant>
 #include <vector>
-#include <cstdint>
-#include <memory>
 
-struct Array;
-using ArrayPtr = std::shared_ptr<Array>;
-using Value = std::variant<int64_t, double, char16_t, std::string, ArrayPtr>;
+using namespace std;
 
-struct Array {
-    std::vector<Value> elements;
-};
+// Bytecode operands describe encoded instruction data, not VM runtime values.
+using Operand = variant<int64_t, double, char16_t>;
 
 
 enum class OpCode : uint8_t {
     PUSH_INT,       // operand: int constant
     PUSH_FLOAT,     // operand: double  constant
-    PUSH_STRING,    // operand: string  constant
+    PUSH_STRING,    // operand: string constant pool index
     PUSH_CHAR,      // operand: string  constant (single char)
     PUSH_BOOL,      // operand: int  0=false 1=true
     BUILD_ARRAY,    // operand: element count
-    LOAD_VAR,       // operand: variable name  → push value on stack
-    STORE_VAR,      // operand: variable name  ← pop value from stack
+    LOAD_ARRAY_ELEMENT,  // pop index and array, then push selected element
+    STORE_ARRAY_ELEMENT, // pop value, index, and array; update element then push value
+    LOAD_LOCAL,     // operand: numeric local slot → push value on stack
+    STORE_LOCAL,    // operand: numeric local slot ← pop value from stack
     ADD,
     SUB,
     MUL,
@@ -36,14 +34,17 @@ enum class OpCode : uint8_t {
     CMP_GE,
     JUMP,           // operand: absolute instruction index
     JUMP_IF_FALSE,  // operand: absolute instruction index; pops condition
+    CALL,           // operand: absolute instruction index of function entry
+    RETURN,         // operand: 1 if returning a value, 0 otherwise
+    ENTER_FRAME,    // operand: local slot count for this frame
     PRINT,          // pop top of stack, print it
-    INPUT,          // operand: prompt string; push string result
+    INPUT,          // operand: prompt string constant pool index; push string result
     CONVERT,        // operand: ValueType numeric code; convert top stack value
     POP,            // discard top of stack
     HALT
 };
 
-inline std::string opCodeName(OpCode op) {
+inline string opCodeName(OpCode op) {
     switch (op) {
         case OpCode::PUSH_INT:      return "PUSH_INT";
         case OpCode::PUSH_FLOAT:    return "PUSH_FLOAT";
@@ -51,8 +52,10 @@ inline std::string opCodeName(OpCode op) {
         case OpCode::PUSH_CHAR:     return "PUSH_CHAR";
         case OpCode::PUSH_BOOL:     return "PUSH_BOOL";
         case OpCode::BUILD_ARRAY:   return "BUILD_ARRAY";
-        case OpCode::LOAD_VAR:      return "LOAD_VAR";
-        case OpCode::STORE_VAR:     return "STORE_VAR";
+        case OpCode::LOAD_ARRAY_ELEMENT: return "LOAD_ARRAY_ELEMENT";
+        case OpCode::STORE_ARRAY_ELEMENT: return "STORE_ARRAY_ELEMENT";
+        case OpCode::LOAD_LOCAL:    return "LOAD_LOCAL";
+        case OpCode::STORE_LOCAL:   return "STORE_LOCAL";
         case OpCode::ADD:           return "ADD";
         case OpCode::SUB:           return "SUB";
         case OpCode::MUL:           return "MUL";
@@ -66,6 +69,9 @@ inline std::string opCodeName(OpCode op) {
         case OpCode::CMP_GE:        return "CMP_GE";
         case OpCode::JUMP:          return "JUMP";
         case OpCode::JUMP_IF_FALSE: return "JUMP_IF_FALSE";
+        case OpCode::CALL:          return "CALL";
+        case OpCode::RETURN:        return "RETURN";
+        case OpCode::ENTER_FRAME:   return "ENTER_FRAME";
         case OpCode::PRINT:         return "PRINT";
         case OpCode::INPUT:         return "INPUT";
         case OpCode::CONVERT:       return "CONVERT";
@@ -78,12 +84,30 @@ inline std::string opCodeName(OpCode op) {
 
 struct Instruction {
     OpCode  op;
-    Value   operand;
+    Operand operand;
     explicit Instruction(OpCode o)                : op(o), operand(int64_t(0)) {}
     Instruction(OpCode o, int64_t v)              : op(o), operand(v) {}
     Instruction(OpCode o, double  v)              : op(o), operand(v) {}
     Instruction(OpCode o, char16_t v)             : op(o), operand(v) {}
-    Instruction(OpCode o, std::string v)          : op(o), operand(std::move(v)) {}
 };
 
-using Bytecode = std::vector<Instruction>;
+struct Bytecode {
+    vector<Instruction> instructions;
+    vector<string> stringConstants;
+
+    Bytecode() = default;
+    Bytecode(initializer_list<Instruction> initialInstructions)
+        : instructions(initialInstructions) {}
+
+    bool empty() const { return instructions.empty(); }
+    size_t size() const { return instructions.size(); }
+    void clear() { instructions.clear(); stringConstants.clear(); }
+    void push_back(Instruction instruction) { instructions.push_back(move(instruction)); }
+
+    Instruction& operator[](size_t index) { return instructions[index]; }
+    const Instruction& operator[](size_t index) const { return instructions[index]; }
+    auto begin() { return instructions.begin(); }
+    auto end() { return instructions.end(); }
+    auto begin() const { return instructions.begin(); }
+    auto end() const { return instructions.end(); }
+};

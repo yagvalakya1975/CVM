@@ -8,7 +8,7 @@ using namespace std;
 
 class Lexer {
 public:
-    Lexer(std::string source);
+    Lexer(string source);
     vector<Token> scanTokens();
 
 private:

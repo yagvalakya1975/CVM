@@ -1,0 +1,3 @@
+int wrong() {
+    return "wrong";
+}

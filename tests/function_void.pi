@@ -1,0 +1,5 @@
+void greet() {
+    print("hello");
+}
+
+greet();

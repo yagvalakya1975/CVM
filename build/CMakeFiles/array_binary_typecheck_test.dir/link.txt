@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/array_binary_typecheck_test.dir/tests/array_binary_typecheck.cpp.o CMakeFiles/array_binary_typecheck_test.dir/src/lexer/lexer.cpp.o CMakeFiles/array_binary_typecheck_test.dir/src/parser/parser.cpp.o CMakeFiles/array_binary_typecheck_test.dir/src/vm/compiler.cpp.o -o array_binary_typecheck_test
